@@ -67,8 +67,10 @@ public final class WaanguChat: @unchecked Sendable {
     private let engine: FeatureSyncEngine<ChatSyncDelegate>
 
     private let lock = NSLock()
-    private var hasPrepared = false
-    private var registered = false
+    /// Launch work runs once; a second caller waits for the first instead of returning while it
+    /// is still running (the host's start-up `warmUp` and an early tap on chat can overlap).
+    private var prepareTask: Task<Void, Never>?
+    private var registerTask: Task<Void, Never>?
 
     // MARK: - Init
 
@@ -251,11 +253,16 @@ public final class WaanguChat: @unchecked Sendable {
 
     /// Once, at launch, before anything else: registers chat's tables and its realtime topics.
     public func prepare() async {
-        let first: Bool = lock.withLock {
-            defer { hasPrepared = true }
-            return !hasPrepared
+        let task: Task<Void, Never> = lock.withLock {
+            if let prepareTask { return prepareTask }
+            let created = Task { await self.runPrepare() }
+            prepareTask = created
+            return created
         }
-        guard first else { return }
+        await task.value
+    }
+
+    private func runPrepare() async {
         await logger.log("WaanguChatSDK \(WaanguChatVersion.current)", level: .info)
         // A store from `makeDatabase` already has chat's tables registered; registering them
         // again stops the app when the store is first used.
@@ -263,6 +270,14 @@ public final class WaanguChat: @unchecked Sendable {
             await DatabaseAssembly.register(ChatDatabaseRegistration.self, in: database)
         }
         await realtimeClient.register(ChatRealtimeRegistration.topicRegistrations)
+    }
+
+    /// What a host does for chat at launch, in one call: `prepare()`, then `registerFeature()`.
+    /// Call it from your app's start-up task so opening chat does not pay for it. Safe to call
+    /// more than once; `WaanguChatView` calls it too.
+    public func warmUp() async {
+        await prepare()
+        await registerFeature()
     }
 
     /// The chat screens' coordinator. Present `ChatCoordinatorView(coordinator:)` with it. The
@@ -319,11 +334,16 @@ public final class WaanguChat: @unchecked Sendable {
     /// Tells the feature registry how to build chat, so it can be preloaded at launch. Safe to
     /// call more than once. `makeCoordinator()` calls it too.
     public func registerFeature() async {
-        let first: Bool = lock.withLock {
-            defer { registered = true }
-            return !registered
+        let task: Task<Void, Never> = lock.withLock {
+            if let registerTask { return registerTask }
+            let created = Task { await self.runRegisterFeature() }
+            registerTask = created
+            return created
         }
-        guard first else { return }
+        await task.value
+    }
+
+    private func runRegisterFeature() async {
         await FeatureRegistry.shared.registerDependencies(
             for: ChatFeature.self,
             priority: ChatFeature.loadPriority
