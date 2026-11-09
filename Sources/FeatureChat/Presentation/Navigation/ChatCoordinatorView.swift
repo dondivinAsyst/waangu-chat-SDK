@@ -75,6 +75,9 @@ public struct ChatCoordinatorView: View {
         ChatAuthInitView(
             viewModel: coordinator.feature.makeChatAuthInitViewModel(),
             translationService: coordinator.feature.translationService,
+            onClose: {
+                coordinator.exitToMainApp()
+            },
             onAuthSuccess: {
                 coordinator.handleAuthSuccess()
             }

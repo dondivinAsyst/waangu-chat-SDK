@@ -970,6 +970,7 @@ public struct ChatTranslationKeys {
     public static let AUTH_START_FAILED_TITLE          = "auth_start_failed_title"
     public static let AUTH_START_FAILED_NETWORK        = "auth_start_failed_network"
     public static let AUTH_START_FAILED_SESSION        = "auth_start_failed_session"
+    public static let AUTH_RETRY_COUNTDOWN             = "auth_retry_countdown"
     public static let CALLS_RECENT                     = "calls_recent"
     public static let CALLS_TITLE                      = "calls_title"
     public static let CALLS_NO_MISSED                  = "calls_no_missed"

@@ -34,6 +34,7 @@
       "archive_edit": "Modifier",
       "archived_label": "Archivées",
       "auth_initializing_chat": "Initialisation du chat",
+      "auth_retry_countdown": "Nouvel essai dans %1$s s",
       "auth_start_failed_network": "Vérifiez le Wi‑Fi ou les données mobiles, puis réessayez.",
       "auth_start_failed_session": "Un problème est survenu à l'ouverture de la messagerie. Réessayez.",
       "auth_start_failed_title": "Impossible de démarrer la messagerie",

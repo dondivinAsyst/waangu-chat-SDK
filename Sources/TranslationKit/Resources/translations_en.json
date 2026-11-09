@@ -34,6 +34,7 @@
       "archive_edit": "Edit",
       "archived_label": "Archived",
       "auth_initializing_chat": "Initializing Chat",
+      "auth_retry_countdown": "Trying again in %1$s s",
       "auth_start_failed_network": "Check your Wi‑Fi or mobile data, then try again.",
       "auth_start_failed_session": "Something went wrong while opening chat. Try again.",
       "auth_start_failed_title": "Couldn't start chat",
