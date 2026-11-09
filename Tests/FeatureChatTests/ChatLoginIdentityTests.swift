@@ -49,18 +49,19 @@ final class ChatLoginIdentityTests: XCTestCase {
 
     // MARK: Le dépôt d'authentification
 
-    func test_authenticate_sendsNoIdentifier_andNeedsNoWallet() async throws {
+    func test_authenticate_sendsTheHostsUserId_andNeedsNoWallet() async throws {
         let http = ScriptedAuthDataSource(result: .success(Self.reply(userId: "app-user-1")))
         let repository = AuthRepository(deviceInfoProvider: FixedDeviceInfo(),
                                         httpDataSource: http,
-                                        chatTokenManager: RecordingChatTokens())
+                                        chatTokenManager: RecordingChatTokens(),
+                                        userIdentifier: "host-user-1")
 
         let session = await repository.authenticate()
 
         XCTAssertNotNil(session)
         XCTAssertEqual(http.requests.count, 1)
         let body = try XCTUnwrap(http.requests.first).toDictionary()
-        XCTAssertEqual(Set(body.keys), ["device"], "\(body)")
+        XCTAssertEqual(body["user_identifier"] as? String, "host-user-1", "\(body)")
     }
 
     /// L'identité de la session est celle que le serveur renvoie, jamais celle du téléphone.
@@ -68,7 +69,8 @@ final class ChatLoginIdentityTests: XCTestCase {
         let http = ScriptedAuthDataSource(result: .success(Self.reply(userId: "server-user-9")))
         let repository = AuthRepository(deviceInfoProvider: FixedDeviceInfo(),
                                         httpDataSource: http,
-                                        chatTokenManager: RecordingChatTokens())
+                                        chatTokenManager: RecordingChatTokens(),
+                                        userIdentifier: "host-user-1")
 
         let session = await repository.authenticate()
 
@@ -81,7 +83,8 @@ final class ChatLoginIdentityTests: XCTestCase {
         let tokens = RecordingChatTokens()
         let http = ScriptedAuthDataSource(result: .success(Self.reply(userId: "u", sessionId: "session-abc")))
         let repository = AuthRepository(deviceInfoProvider: FixedDeviceInfo(),
-                                        httpDataSource: http, chatTokenManager: tokens)
+                                        httpDataSource: http, chatTokenManager: tokens,
+                                        userIdentifier: "host-user-1")
 
         _ = await repository.authenticate()
 
@@ -93,7 +96,8 @@ final class ChatLoginIdentityTests: XCTestCase {
         let tokens = RecordingChatTokens()
         let http = ScriptedAuthDataSource(result: .success(Self.reply(userId: "u", status: 401)))
         let repository = AuthRepository(deviceInfoProvider: FixedDeviceInfo(),
-                                        httpDataSource: http, chatTokenManager: tokens)
+                                        httpDataSource: http, chatTokenManager: tokens,
+                                        userIdentifier: "host-user-1")
 
         let session = await repository.authenticate()
 
@@ -105,7 +109,8 @@ final class ChatLoginIdentityTests: XCTestCase {
     func test_aFailedCall_returnsNoSession() async {
         let http = ScriptedAuthDataSource(result: .failure(URLError(.notConnectedToInternet)))
         let repository = AuthRepository(deviceInfoProvider: FixedDeviceInfo(),
-                                        httpDataSource: http, chatTokenManager: RecordingChatTokens())
+                                        httpDataSource: http, chatTokenManager: RecordingChatTokens(),
+                                        userIdentifier: "host-user-1")
 
         let session = await repository.authenticate()
 

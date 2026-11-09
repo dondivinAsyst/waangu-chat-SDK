@@ -237,8 +237,8 @@ public struct ChatDependencies : Sendable {
     /// own. It used to be a literal inside this package, which made every host log in as Waangu User.
     public let appId: String
 
-    /// Sent as `user_identifier` on chat login. `nil` sends none.
-    public let userId: String?
+    /// Sent as `user_identifier` in the chat login body. Required, like `appId`.
+    public let userId: String
 
     /// The parts of chat the host turned on (SDK plan, step 1.10). A part that is off shows no
     /// entry point. Defaults to all, so a caller that says nothing behaves as before.
@@ -278,7 +278,7 @@ public struct ChatDependencies : Sendable {
         attestationVerifier: any DeviceAttestationVerifying = UnavailableAttestationVerifier(),
         mainAPIBaseURL: String,
         appId: String,
-        userId: String? = nil,
+        userId: String,
         appSettings: any AppSettingsProtocol,
         translationService: any TranslationServiceProtocol,
         chatTokenManager: any ChatTokenManagerProtocol,

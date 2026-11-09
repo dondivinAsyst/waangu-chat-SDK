@@ -16,7 +16,7 @@ final class ChatDependencyOverridesTests: XCTestCase {
 
     private func configuration(payments: Bool) -> WaanguChatConfiguration {
         WaanguChatConfiguration(
-            appId: "test-host",
+            appId: "test-host", userId: "test-user",
             chatBaseURL: "https://chat.test.invalid",
             chatUploadBaseURL: "https://upload.test.invalid",
             mainAPIBaseURL: "https://main.test.invalid",
@@ -108,7 +108,7 @@ final class ChatDependencyOverridesTests: XCTestCase {
     private func dependencies(modules: Set<ChatModule>) async throws -> ChatDependencies {
         let database = await WaanguChat.makeDatabase()
         let config = WaanguChatConfiguration(
-            appId: "test-host", chatBaseURL: "https://chat.test.invalid",
+            appId: "test-host", userId: "test-user", chatBaseURL: "https://chat.test.invalid",
             chatUploadBaseURL: "https://upload.test.invalid", mainAPIBaseURL: "https://main.test.invalid",
             realtime: .init(host: "mqtt.test.invalid", port: 8883, useTLS: true),
             keychainService: "com.test.waangu-chat-sdk", modules: modules)
@@ -118,7 +118,7 @@ final class ChatDependencyOverridesTests: XCTestCase {
 
     func test_theDefaultModules_areEverythingButPayments() {
         let config = WaanguChatConfiguration(
-            appId: "a", chatBaseURL: "c", chatUploadBaseURL: "u", mainAPIBaseURL: "m",
+            appId: "a", userId: "test-user", chatBaseURL: "c", chatUploadBaseURL: "u", mainAPIBaseURL: "m",
             realtime: .init(host: "h", port: 1, useTLS: false), keychainService: "k")
 
         XCTAssertEqual(config.modules, ChatModule.standard)

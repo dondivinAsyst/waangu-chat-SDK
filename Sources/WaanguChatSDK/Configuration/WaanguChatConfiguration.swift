@@ -27,9 +27,8 @@ public struct WaanguChatConfiguration: Sendable {
     /// The app's identifier in Identity, sent as `X-App-Id` on chat login. Identity asks that
     /// app's registered `verify-user` webhook who the signed-in user is.
     public let appId: String
-    /// Who the user is, sent as `user_identifier` on chat login. `nil` sends none, and Identity
-    /// then relies on the app's `verify-user` webhook alone.
-    public let userId: String?
+    /// Who the user is, sent as `user_identifier` in the chat login body. Required, like `appId`.
+    public let userId: String
     public let chatBaseURL: String
     public let chatUploadBaseURL: String
     /// The host's main API. Chat uses it for its legacy upload path and to tell which backend a
@@ -50,7 +49,7 @@ public struct WaanguChatConfiguration: Sendable {
 
     public init(
         appId: String,
-        userId: String? = nil,
+        userId: String,
         chatBaseURL: String,
         chatUploadBaseURL: String,
         mainAPIBaseURL: String,

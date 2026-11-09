@@ -17,7 +17,7 @@ final class FacadePaymentsTests: XCTestCase {
 
     private func configuration(payments: Bool) -> WaanguChatConfiguration {
         WaanguChatConfiguration(
-            appId: "test-host",
+            appId: "test-host", userId: "test-user",
             chatBaseURL: "https://chat.test.invalid",
             chatUploadBaseURL: "https://upload.test.invalid",
             mainAPIBaseURL: "https://main.test.invalid",
@@ -36,7 +36,7 @@ final class FacadePaymentsTests: XCTestCase {
 
     func test_paymentsAreOffByDefault() {
         let withoutFlag = WaanguChatConfiguration(
-            appId: "a", chatBaseURL: "c", chatUploadBaseURL: "u", mainAPIBaseURL: "m",
+            appId: "a", userId: "test-user", chatBaseURL: "c", chatUploadBaseURL: "u", mainAPIBaseURL: "m",
             realtime: .init(host: "h", port: 1, useTLS: false), keychainService: "k")
 
         XCTAssertFalse(withoutFlag.modules.contains(.payments))

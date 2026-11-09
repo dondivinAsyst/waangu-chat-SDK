@@ -15,7 +15,7 @@ final class PlugAndPlayTests: XCTestCase {
     private func configuration(keychainService: String? = nil,
                                modules: Set<ChatModule> = ChatModule.standard) -> WaanguChatConfiguration {
         WaanguChatConfiguration(
-            appId: "app",
+            appId: "app", userId: "test-user",
             chatBaseURL: "https://chat.test.invalid",
             chatUploadBaseURL: "https://upload.test.invalid",
             mainAPIBaseURL: "https://api.test.invalid",
@@ -102,7 +102,7 @@ final class SignOutTests: XCTestCase {
         }
         try await Task.sleep(nanoseconds: 100_000_000)
         let chat = WaanguChat(configuration: WaanguChatConfiguration(
-                                  appId: "a", chatBaseURL: "https://c.test.invalid", chatUploadBaseURL: "https://u.test.invalid",
+                                  appId: "a", userId: "test-user", chatBaseURL: "https://c.test.invalid", chatUploadBaseURL: "https://u.test.invalid",
                                   mainAPIBaseURL: "https://m.test.invalid", realtime: .init(host: "h.test.invalid", port: 8883, useTLS: true)),
                               database: await WaanguChat.makeDatabase(),
                               tokenManager: ProvidedTokenManager(provider: { nil }))

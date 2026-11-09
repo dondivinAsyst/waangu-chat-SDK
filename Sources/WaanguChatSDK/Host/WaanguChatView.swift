@@ -28,6 +28,7 @@ import WaanguFeatureChat
 /// WaanguChatView(
 ///     configuration: WaanguChatConfiguration(
 ///         appId: "my-app-id",
+///         userId: "my-user-id",
 ///         chatBaseURL: "<chat API>", chatUploadBaseURL: "<chat upload API>",
 ///         mainAPIBaseURL: "<main API>",
 ///         realtime: .init(host: "<mqtt host>", port: 8883, useTLS: true)),

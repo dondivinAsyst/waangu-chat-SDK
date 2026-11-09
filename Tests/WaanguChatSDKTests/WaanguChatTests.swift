@@ -16,7 +16,7 @@ import WaanguFeatureChat
 final class WaanguChatTests: XCTestCase {
 
     private let configuration = WaanguChatConfiguration(
-        appId: "test-host",
+        appId: "test-host", userId: "test-user",
         chatBaseURL: "https://chat.test.invalid",
         chatUploadBaseURL: "https://upload.test.invalid",
         mainAPIBaseURL: "https://main.test.invalid",
@@ -97,6 +97,7 @@ final class WaanguChatTests: XCTestCase {
         let dependencies = try await chat.makeChatDependencies()
 
         XCTAssertEqual(dependencies.appId, "test-host", "chat logs in as the host's own app")
+        XCTAssertEqual(dependencies.userId, "test-user", "chat logs in with the host's user id")
         XCTAssertEqual(dependencies.mainAPIBaseURL, "https://main.test.invalid")
         XCTAssertNotNil(dependencies.callMediaEngine, "calls are on for a host that uses the facade")
         dependencies.metricsSink.record(ChatMetric(name: "probe"))

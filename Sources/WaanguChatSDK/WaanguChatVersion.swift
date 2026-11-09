@@ -16,7 +16,7 @@ import Foundation
 public enum WaanguChatVersion {
 
     /// Replaced at release time. Keep it on one line and spelled exactly like this.
-    private static let stamped = "0.1.1"
+    private static let stamped = "0.2.0"
 
     /// What a build that was not released reports.
     public static let development = "0.0.0-dev"

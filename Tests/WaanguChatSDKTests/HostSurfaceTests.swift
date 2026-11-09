@@ -67,7 +67,7 @@ final class HostSurfaceTests: XCTestCase {
         let store = WaanguChat.makeTokenStore(keychainService: service)
         let database = await WaanguChat.makeDatabase()
         let configuration = WaanguChatConfiguration(
-            appId: "test", chatBaseURL: "https://chat.test.invalid", chatUploadBaseURL: "https://u.test.invalid",
+            appId: "test", userId: "test-user", chatBaseURL: "https://chat.test.invalid", chatUploadBaseURL: "https://u.test.invalid",
             mainAPIBaseURL: "https://m.test.invalid", realtime: .init(host: "h.test.invalid", port: 8883, useTLS: true),
             keychainService: service)
         let chat = WaanguChat(configuration: configuration, database: database, tokenManager: store)
