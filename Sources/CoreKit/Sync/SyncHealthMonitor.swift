@@ -98,6 +98,10 @@ public final class SyncHealthMonitor: ObservableObject {
     public static let shared = SyncHealthMonitor()
     
     // MARK: - Published Properties
+    //
+    // Read-only copies for SwiftUI. They are assigned on the main thread only,
+    // from snapshots taken under `lock`. Code that needs the current value from
+    // any thread uses the accessors below, which read the locked storage.
     
     @Published public private(set) var overallStatus: SyncHealthStatus = .healthy
     @Published public private(set) var metrics: [SyncTopic: SyncMetrics] = [:]
@@ -109,11 +113,31 @@ public final class SyncHealthMonitor: ObservableObject {
     private let userDefaults: UserDefaults
     private let metricsKey = "sync.health.metrics"
     private let subscriptionsKey = "sync.health.subscriptions"
-    private var heartbeatTimer: Timer?
+    private var heartbeatTimer: Timer?   // touched on the main thread only
+    
+    /// One lock for everything below. The monitor is a singleton called from
+    /// several repositories at once when chat starts: an unguarded dictionary
+    /// mutated from two threads crashes in `Dictionary.subscript(_:)=`.
+    private let lock = NSLock()
+    private var storedMetrics: [SyncTopic: SyncMetrics] = [:]
+    private var storedSubscriptions: Set<String> = []
+    private var storedHeartbeat: Date?
+    /// Bumped on every change. A snapshot older than the one already shown is
+    /// dropped on the main thread, so two threads cannot publish out of order.
+    private var version = 0
+    private var publishedVersion = 0   // main thread only
+    
+    private struct Snapshot {
+        let version: Int
+        let metrics: [SyncTopic: SyncMetrics]
+        let subscriptions: Set<String>
+        let heartbeat: Date?
+        let overallStatus: SyncHealthStatus
+    }
     
     // MARK: - Initialization
     
-    private init(userDefaults: UserDefaults = .standard) {
+    init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
         loadMetrics()
         startHeartbeat()
@@ -123,177 +147,251 @@ public final class SyncHealthMonitor: ObservableObject {
         heartbeatTimer?.invalidate()
     }
     
+    // MARK: - Locking and publishing
+    
+    /// Synchronous on purpose: `NSLock` must not be taken directly in `async` code.
+    private func withLock<T>(_ body: () -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return body()
+    }
+    
+    /// Call with `lock` held.
+    private func makeSnapshot() -> Snapshot {
+        version += 1
+        return Snapshot(
+            version: version,
+            metrics: storedMetrics,
+            subscriptions: storedSubscriptions,
+            heartbeat: storedHeartbeat,
+            overallStatus: Self.computeOverallStatus(storedMetrics)
+        )
+    }
+    
+    /// Call with `lock` released. `@Published` is never assigned off the main thread.
+    private func publish(_ snapshot: Snapshot) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, snapshot.version > self.publishedVersion else { return }
+            self.publishedVersion = snapshot.version
+            self.metrics = snapshot.metrics
+            self.subscriptions = snapshot.subscriptions
+            self.lastHeartbeat = snapshot.heartbeat
+            self.overallStatus = snapshot.overallStatus
+        }
+    }
+    
     // MARK: - Heartbeat
     
     private func startHeartbeat() {
-        heartbeatTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
-            self?.beat()
+        // Scheduled on the main run loop: the first caller of `shared` may be a
+        // background thread, whose run loop never runs.
+        DispatchQueue.main.async { [weak self] in
+            self?.heartbeatTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] _ in
+                self?.beat()
+            }
         }
     }
     
     private func beat() {
-        lastHeartbeat = Date()
-        updateOverallStatus()
+        let snapshot: Snapshot = withLock {
+            storedHeartbeat = Date()
+            return makeSnapshot()
+        }
+        publish(snapshot)
     }
     
     // MARK: - Sync Recording
     
     public func recordSyncStart(topic: SyncTopic) {
-        var metric = metrics[topic] ?? SyncMetrics(topic: topic)
-        
-        // Create new metrics with updated values
-        let updatedMetric = SyncMetrics(
-            topic: metric.topic,
-            lastSyncTime: Date(),
-            lastSuccessTime: metric.lastSuccessTime,
-            lastFailureTime: metric.lastFailureTime,
-            consecutiveFailures: metric.consecutiveFailures,
-            totalSyncs: metric.totalSyncs + 1,
-            totalFailures: metric.totalFailures
-        )
-        
-        metrics[topic] = updatedMetric
-        saveMetrics()
+        let snapshot: Snapshot = withLock {
+            let metric = storedMetrics[topic] ?? SyncMetrics(topic: topic)
+            
+            storedMetrics[topic] = SyncMetrics(
+                topic: metric.topic,
+                lastSyncTime: Date(),
+                lastSuccessTime: metric.lastSuccessTime,
+                lastFailureTime: metric.lastFailureTime,
+                consecutiveFailures: metric.consecutiveFailures,
+                totalSyncs: metric.totalSyncs + 1,
+                totalFailures: metric.totalFailures
+            )
+            saveMetrics()
+            return makeSnapshot()
+        }
+        publish(snapshot)
         
         debugLog("[SyncHealth] \(topic.rawValue.capitalized) sync started")
     }
     
     public func recordSyncSuccess(topic: SyncTopic, itemsSynced: Int = 0) {
-        var metric = metrics[topic] ?? SyncMetrics(topic: topic)
+        var emoji = ""
+        let snapshot: Snapshot = withLock {
+            let metric = storedMetrics[topic] ?? SyncMetrics(topic: topic)
+            
+            let updatedMetric = SyncMetrics(
+                topic: metric.topic,
+                lastSyncTime: metric.lastSyncTime,
+                lastSuccessTime: Date(),
+                lastFailureTime: metric.lastFailureTime,
+                consecutiveFailures: 0, // Reset on success
+                totalSyncs: metric.totalSyncs,
+                totalFailures: metric.totalFailures
+            )
+            storedMetrics[topic] = updatedMetric
+            saveMetrics()
+            emoji = updatedMetric.healthEmoji
+            return makeSnapshot()
+        }
+        publish(snapshot)
         
-        let updatedMetric = SyncMetrics(
-            topic: metric.topic,
-            lastSyncTime: metric.lastSyncTime,
-            lastSuccessTime: Date(),
-            lastFailureTime: metric.lastFailureTime,
-            consecutiveFailures: 0, // Reset on success
-            totalSyncs: metric.totalSyncs,
-            totalFailures: metric.totalFailures
-        )
-        
-        metrics[topic] = updatedMetric
-        saveMetrics()
-        updateOverallStatus()
-        
-        debugLog("[SyncHealth] \(updatedMetric.healthEmoji) \(topic.rawValue.capitalized) sync succeeded (\(itemsSynced) items)")
+        debugLog("[SyncHealth] \(emoji) \(topic.rawValue.capitalized) sync succeeded (\(itemsSynced) items)")
     }
     
     public func recordSyncFailure(topic: SyncTopic, error: Error) {
-        var metric = metrics[topic] ?? SyncMetrics(topic: topic)
+        var emoji = ""
+        let snapshot: Snapshot = withLock {
+            let metric = storedMetrics[topic] ?? SyncMetrics(topic: topic)
+            
+            let updatedMetric = SyncMetrics(
+                topic: metric.topic,
+                lastSyncTime: metric.lastSyncTime,
+                lastSuccessTime: metric.lastSuccessTime,
+                lastFailureTime: Date(),
+                consecutiveFailures: metric.consecutiveFailures + 1,
+                totalSyncs: metric.totalSyncs,
+                totalFailures: metric.totalFailures + 1
+            )
+            storedMetrics[topic] = updatedMetric
+            saveMetrics()
+            emoji = updatedMetric.healthEmoji
+            return makeSnapshot()
+        }
+        publish(snapshot)
         
-        let updatedMetric = SyncMetrics(
-            topic: metric.topic,
-            lastSyncTime: metric.lastSyncTime,
-            lastSuccessTime: metric.lastSuccessTime,
-            lastFailureTime: Date(),
-            consecutiveFailures: metric.consecutiveFailures + 1,
-            totalSyncs: metric.totalSyncs,
-            totalFailures: metric.totalFailures + 1
-        )
-        
-        metrics[topic] = updatedMetric
-        saveMetrics()
-        updateOverallStatus()
-        
-        debugLog("[SyncHealth] \(updatedMetric.healthEmoji) \(topic.rawValue.capitalized) sync failed: \(error.localizedDescription)")
+        debugLog("[SyncHealth] \(emoji) \(topic.rawValue.capitalized) sync failed: \(error.localizedDescription)")
     }
     
     // MARK: - Subscriptions
     
     public func addSubscription(_ topic: String) {
-        subscriptions.insert(topic)
-        saveSubscriptions()
+        let snapshot: Snapshot = withLock {
+            storedSubscriptions.insert(topic)
+            saveSubscriptions()
+            return makeSnapshot()
+        }
+        publish(snapshot)
         debugLog("[SyncHealth] 📡 Subscribed to: \(topic)")
     }
     
     public func removeSubscription(_ topic: String) {
-        subscriptions.remove(topic)
-        saveSubscriptions()
+        let snapshot: Snapshot = withLock {
+            storedSubscriptions.remove(topic)
+            saveSubscriptions()
+            return makeSnapshot()
+        }
+        publish(snapshot)
         debugLog("[SyncHealth] 📡 Unsubscribed from: \(topic)")
     }
     
     public func clearSubscriptions() {
-        subscriptions.removeAll()
-        saveSubscriptions()
+        let snapshot: Snapshot = withLock {
+            storedSubscriptions.removeAll()
+            saveSubscriptions()
+            return makeSnapshot()
+        }
+        publish(snapshot)
         debugLog("[SyncHealth] 📡 All subscriptions cleared")
     }
     
     // MARK: - Status Calculation
     
-    private func updateOverallStatus() {
+    private static func computeOverallStatus(_ metrics: [SyncTopic: SyncMetrics]) -> SyncHealthStatus {
         let statuses = metrics.values.map { $0.status }
         
         if statuses.contains(.offline) {
-            overallStatus = .offline
+            return .offline
         } else if statuses.contains(.degraded) {
-            overallStatus = .degraded
+            return .degraded
         } else if statuses.contains(.stale) {
-            overallStatus = .stale
+            return .stale
         } else if !statuses.isEmpty {
-            overallStatus = .healthy
+            return .healthy
         } else {
-            overallStatus = .offline
+            return .offline
         }
     }
     
     // MARK: - Persistence
     
+    /// Runs from `init`, before the instance is shared: nothing else can touch it
+    /// yet, so the `@Published` values are set directly (same thread as `init`).
     private func loadMetrics() {
         if let data = userDefaults.data(forKey: metricsKey),
            let decoded = try? JSONDecoder().decode([SyncTopic: SyncMetrics].self, from: data) {
-            metrics = decoded
+            storedMetrics = decoded
         }
         
         if let data = userDefaults.data(forKey: subscriptionsKey),
            let decoded = try? JSONDecoder().decode(Set<String>.self, from: data) {
-            subscriptions = decoded
+            storedSubscriptions = decoded
         }
         
-        updateOverallStatus()
+        let snapshot = makeSnapshot()
+        publishedVersion = snapshot.version
+        metrics = snapshot.metrics
+        subscriptions = snapshot.subscriptions
+        lastHeartbeat = snapshot.heartbeat
+        overallStatus = snapshot.overallStatus
     }
     
+    /// Call with `lock` held.
     private func saveMetrics() {
-        if let encoded = try? JSONEncoder().encode(metrics) {
+        if let encoded = try? JSONEncoder().encode(storedMetrics) {
             userDefaults.set(encoded, forKey: metricsKey)
         }
     }
     
+    /// Call with `lock` held.
     private func saveSubscriptions() {
-        if let encoded = try? JSONEncoder().encode(subscriptions) {
+        if let encoded = try? JSONEncoder().encode(storedSubscriptions) {
             userDefaults.set(encoded, forKey: subscriptionsKey)
         }
     }
     
     // MARK: - Public Accessors
+    //
+    // Read the locked storage, not the `@Published` copies, so they are correct
+    // from any thread and never one main-thread hop behind.
     
     public func getMetrics(for topic: SyncTopic) -> SyncMetrics? {
-        return metrics[topic]
+        return withLock { storedMetrics[topic] }
     }
     
     public func getLastSyncTime(for topic: SyncTopic) -> Date? {
-        return metrics[topic]?.lastSyncTime
+        return withLock { storedMetrics[topic]?.lastSyncTime }
     }
     
     public func getLastSuccessTime(for topic: SyncTopic) -> Date? {
-        return metrics[topic]?.lastSuccessTime
+        return withLock { storedMetrics[topic]?.lastSuccessTime }
     }
     
     public func getStatus(for topic: SyncTopic) -> SyncHealthStatus {
-        return metrics[topic]?.status ?? .offline
+        return withLock { storedMetrics[topic]?.status ?? .offline }
     }
     
     public func getHealthSummary() -> String {
+        let (current, subs, heartbeat) = withLock { (storedMetrics, storedSubscriptions, storedHeartbeat) }
         var summary = "Sync Health Summary:\n"
         
         for topic in SyncTopic.allCases {
-            if let metric = metrics[topic] {
+            if let metric = current[topic] {
                 let timeAgo = metric.lastSuccessTime.map { formatTimeAgo($0) } ?? "Never"
                 summary += "\(metric.healthEmoji) \(topic.rawValue.capitalized): \(timeAgo)\n"
             }
         }
         
-        summary += "\n📡 Subscriptions: \(subscriptions.count) active"
-        summary += "\n💓 Last heartbeat: \(lastHeartbeat.map { formatTimeAgo($0) } ?? "Never")"
+        summary += "\n📡 Subscriptions: \(subs.count) active"
+        summary += "\n💓 Last heartbeat: \(heartbeat.map { formatTimeAgo($0) } ?? "Never")"
         
         return summary
     }
@@ -318,13 +416,15 @@ public final class SyncHealthMonitor: ObservableObject {
     // MARK: - Reset
     
     public func reset() {
-        metrics.removeAll()
-        subscriptions.removeAll()
-        overallStatus = .offline
-        lastHeartbeat = nil
-        
-        userDefaults.removeObject(forKey: metricsKey)
-        userDefaults.removeObject(forKey: subscriptionsKey)
+        let snapshot: Snapshot = withLock {
+            storedMetrics.removeAll()
+            storedSubscriptions.removeAll()
+            storedHeartbeat = nil
+            userDefaults.removeObject(forKey: metricsKey)
+            userDefaults.removeObject(forKey: subscriptionsKey)
+            return makeSnapshot()
+        }
+        publish(snapshot)
         
         debugLog("[SyncHealth] 🔄 Health monitor reset")
     }
@@ -332,7 +432,8 @@ public final class SyncHealthMonitor: ObservableObject {
     // MARK: - Async Accessors for UI
     
     public func getAllMetrics() async -> [SyncHealthMetric] {
-        return metrics.values.map { metric in
+        let current = withLock { storedMetrics }
+        return current.values.map { metric in
             SyncHealthMetric(
                 id: metric.topic.rawValue,
                 topic: metric.topic.rawValue,
@@ -345,7 +446,7 @@ public final class SyncHealthMonitor: ObservableObject {
     }
     
     public func getActiveSubscriptions() async -> Set<String> {
-        return subscriptions
+        return withLock { storedSubscriptions }
     }
 }
 

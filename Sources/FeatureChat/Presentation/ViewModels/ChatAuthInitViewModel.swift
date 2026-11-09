@@ -139,8 +139,18 @@ public final class ChatAuthInitViewModel: ObservableObject {
         return nil
     }
     
+    /// The full sync in flight, if any. `checkAuthenticationStatus()` can run
+    /// more than once at start-up; without this, each call stacks another full
+    /// sync on top of the previous one.
+    private var fullSyncTask: Task<Void, Never>?
+    
     private func performFullSync() {
-        Task {
+        guard fullSyncTask == nil else {
+            debugLog("🌎⏭️ Full sync already running, skipping")
+            return
+        }
+        fullSyncTask = Task {
+            defer { fullSyncTask = nil }
             do {
                 debugLog("🌎🔄 Starting full conversation and message sync...")
                 try await discussionRepository.performFullSync(limit: 50)
