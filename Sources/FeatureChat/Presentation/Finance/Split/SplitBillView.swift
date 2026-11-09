@@ -18,6 +18,9 @@ struct SplitBillListView: View {
     let stepUp: any StepUpAuthenticating
     let conversationID: String?
     let deviceID: String
+    /// Devise imposée par le serveur. `nil` tant que la session n'a pas répondu :
+    /// on ne crée pas de partage dans une devise que l'app aurait choisie.
+    let currency: String?
     let onDismiss: () -> Void
 
     @State private var phase: Phase = .loading
@@ -67,6 +70,7 @@ struct SplitBillListView: View {
                     Button { isCreating = true } label: {
                         Label(FinanceStrings.splitNew, systemImage: "plus")
                     }
+                    .disabled(currency == nil)
                 }
             }
             .financeDestination(item: $selected) { split in
@@ -79,6 +83,7 @@ struct SplitBillListView: View {
             .financeDestination(isPresented: $isCreating) {
                 SplitBillCreationView(
                     splits: splits, sharing: sharing, conversationID: conversationID, deviceID: deviceID,
+                    currency: currency ?? "",
                     onCreated: { isCreating = false; Task { await load() } },
                     onDismiss: { isCreating = false }
                 )
@@ -110,6 +115,7 @@ struct SplitBillListView: View {
                                                     : FinanceStrings.splitListingUnavailable)
             Button(FinanceStrings.splitNew) { isCreating = true }
                 .buttonStyle(.borderedProminent)
+                .disabled(currency == nil)
         }
     }
 
@@ -589,6 +595,8 @@ struct SplitBillCreationView: View {
     let sharing: any ShareSplitBillUseCaseProtocol
     let conversationID: String?
     let deviceID: String
+    /// Devise du serveur, jamais choisie par l'app (`FinanceSessionStatus.currency`).
+    let currency: String
     /// Clés d'idempotence, une par opération et par charge utile — Bloc 10, §4.
     @Environment(\.financeOperationKeys) private var operationKeys
     let onCreated: () -> Void
@@ -596,7 +604,6 @@ struct SplitBillCreationView: View {
 
     @State private var label = ""
     @State private var totalText = ""
-    @State private var currency = "BIF"
     /// Contacts choisis. Leur identifiant de compte devient `participantIDs`,
     /// leur numéro désigne le fil où chacun recevra le partage.
     @State private var participants: [UserContactProps] = []
@@ -688,10 +695,15 @@ struct SplitBillCreationView: View {
 
         guard let declared = strategy.strategy(for: participantIDs) else { return nil }
 
+        // Exposant ISO 4217 de la devise du serveur : le montant saisi est en
+        // unités majeures, le brouillon porte des unités mineures.
+        let exponent = LiveInvoiceProvider.exponent(of: currency)
+        let minor = decimal * pow(Decimal(10), exponent)
+
         return SplitBillDraft(
             labelKey: label.trimmingCharacters(in: .whitespacesAndNewlines),
-            total: Money(minorUnits: NSDecimalNumber(decimal: decimal).int64Value,
-                         currency: CurrencyCode(code: currency, exponent: 0)),
+            total: Money(minorUnits: NSDecimalNumber(decimal: minor).int64Value,
+                         currency: CurrencyCode(code: currency, exponent: exponent)),
             participantIDs: participantIDs,
             strategy: declared,
             privacyScope: privacyScope,

@@ -315,7 +315,7 @@ struct PaymentsDestination: View {
             case .savings:
                 SavingsView(
                     savings: surface.savings, stepUp: surface.stepUp,
-                    deviceID: surface.deviceID,
+                    deviceID: surface.deviceID, currency: serverCurrency,
                     onDismiss: { onDismiss() }
                 )
             case .investment:
@@ -446,6 +446,7 @@ struct PaymentsDestination: View {
                     stepUp: surface.stepUp,
                     conversationID: conversationID,
                     deviceID: surface.deviceID,
+                    currency: serverCurrency,
                     onDismiss: { onDismiss() }
                 )
 

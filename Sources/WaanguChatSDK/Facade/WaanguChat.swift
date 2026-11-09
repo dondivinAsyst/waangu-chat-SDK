@@ -441,6 +441,7 @@ public final class WaanguChat: @unchecked Sendable {
             attestationVerifier: attestationVerifier,
             mainAPIBaseURL: configuration.mainAPIBaseURL,
             appId: configuration.appId,
+            userId: configuration.userId,
             appSettings: appSettings,
             translationService: TranslationService(locale: languageCode),
             chatTokenManager: chatTokenManager,

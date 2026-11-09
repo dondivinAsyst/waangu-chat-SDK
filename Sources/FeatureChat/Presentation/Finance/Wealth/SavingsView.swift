@@ -20,6 +20,9 @@ struct SavingsView: View {
     /// Satisfait le niveau de step-up exigé par le backend pour les retraits.
     let stepUp: any StepUpAuthenticating
     let deviceID: String
+    /// Devise imposée par le serveur. `nil` tant que la session n'a pas répondu :
+    /// on ne crée pas de poche dans une devise que l'app aurait choisie.
+    let currency: String?
 
     /// Clés d'idempotence, une par opération et par charge utile — Bloc 10, §4.
     /// Voir `FinanceOperationKeys` : une clé fabriquée dans l'appel faisait de
@@ -84,11 +87,12 @@ struct SavingsView: View {
                     Button { isCreating = true } label: {
                         Label(FinanceStrings.savingsNewPocket, systemImage: "plus")
                     }
+                    .disabled(currency == nil)
                 }
             }
             .financeDestination(isPresented: $isCreating) {
                 SavingsPocketCreationView(
-                    savings: savings, deviceID: deviceID,
+                    savings: savings, deviceID: deviceID, currency: currency ?? "",
                     onCreated: { isCreating = false; Task { await load() } },
                     onDismiss: { isCreating = false }
                 )
@@ -169,6 +173,7 @@ struct SavingsView: View {
             FinanceMessage(icon: "banknote", text: FinanceStrings.savingsNoPocket)
             Button(FinanceStrings.savingsNewPocket) { isCreating = true }
                 .buttonStyle(.borderedProminent)
+                .disabled(currency == nil)
         }
     }
 
@@ -271,6 +276,8 @@ struct SavingsPocketCreationView: View {
 
     let savings: any SavingsManaging
     let deviceID: String
+    /// Devise du serveur, jamais choisie par l'app (`FinanceSessionStatus.currency`).
+    let currency: String
     /// Clés d'idempotence, une par opération et par charge utile — Bloc 10, §4.
     @Environment(\.financeOperationKeys) private var operationKeys
     let onCreated: () -> Void
@@ -278,7 +285,6 @@ struct SavingsPocketCreationView: View {
 
     @State private var name = ""
     @State private var kind: SavingsPocketKind = .pocket
-    @State private var currency = "BIF"
     @State private var targetText = ""
     @State private var hasTargetDate = false
     @State private var targetDate = Date()
@@ -339,7 +345,11 @@ struct SavingsPocketCreationView: View {
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             kind: kind,
             currency: currency,
-            targetMinorUnits: target.map { NSDecimalNumber(decimal: $0).int64Value },
+            // Saisi en unités majeures ; le brouillon porte des unités mineures
+            // (exposant ISO 4217 de la devise du serveur).
+            targetMinorUnits: target.map {
+                NSDecimalNumber(decimal: $0 * pow(Decimal(10), LiveInvoiceProvider.exponent(of: currency))).int64Value
+            },
             targetDate: hasTargetDate ? targetDate : nil
         )
         let submissionKey327 = await operationKeys.key(for: FinanceOperationKeys.scope("savings.create", String(describing: draft)), deviceID: deviceID)

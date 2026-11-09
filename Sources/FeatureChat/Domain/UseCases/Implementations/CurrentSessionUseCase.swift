@@ -92,9 +92,10 @@ public final class CurrentSessionUseCase: CurrentSessionUseCaseProtocol {
     public func shouldReauthenticate() async throws -> Bool {
         // Check session expiration
         if let expiresAt = appSettings.chatSessionExpireDate {
+            print("session expiration is \(expiresAt)")
             return Date() > expiresAt
         }
-        
+        print("session expiration is &&&&&&&\(appSettings.chatSessionExpireDate)")
         // Check 24-hour re-authentication rule
         guard let lastAuth = appSettings.lastLoginDate else { return true }
         let hoursSinceAuth = Date().timeIntervalSince(lastAuth) / 3600

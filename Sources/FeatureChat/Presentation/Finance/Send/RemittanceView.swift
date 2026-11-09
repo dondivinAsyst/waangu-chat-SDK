@@ -172,6 +172,8 @@ struct RemittanceView: View {
     }
 
     private func submit(_ quote: FinancialQuote, _ recipient: ResolvedRecipient) async {
+        // Un second appui pendant l'envoi ne repart pas : la phase change avant le premier `await`.
+        guard phase != .submitting else { return }
         guard let idempotency else { phase = .failed(FinanceStrings.sendOperationLost); return }
         phase = .submitting
 
@@ -191,6 +193,7 @@ struct RemittanceView: View {
     /// financement, et un envoi financé deux fois débiterait deux fois.
     private func fundAndSubmit(_ remittance: Remittance,
                                attestation: StepUpAttestation?) async {
+        guard phase != .submitting else { return }
         guard let idempotency else { phase = .failed(FinanceStrings.sendOperationLost); return }
         phase = .submitting
 

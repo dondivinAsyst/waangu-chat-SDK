@@ -172,7 +172,8 @@ public final class ChatFeature: FeatureLoadable {
         return AuthRepository(
             deviceInfoProvider: dependencies.deviceInfoProvider,
             httpDataSource: httpDataSource,
-            chatTokenManager:dependencies.chatTokenManager
+            chatTokenManager:dependencies.chatTokenManager,
+            userIdentifier: dependencies.userId
         )
     }()
     

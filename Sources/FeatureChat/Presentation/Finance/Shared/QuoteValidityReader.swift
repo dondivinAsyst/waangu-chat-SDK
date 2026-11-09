@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WaanguNetworkKit
 import WaanguSharedUI
 
 /// Réévalue la validité d'un devis chaque seconde et la passe au contenu.
@@ -19,7 +20,8 @@ struct QuoteValidityReader<Content: View>: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
-            content(QuoteValidity.at(context.date, expiresAt: expiresAt))
+            // Un devis expire à l'heure du serveur, pas à celle du téléphone.
+            content(QuoteValidity.at(ServerClock.shared.adjusted(context.date), expiresAt: expiresAt))
         }
     }
 }

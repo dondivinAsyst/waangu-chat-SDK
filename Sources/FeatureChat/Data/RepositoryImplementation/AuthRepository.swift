@@ -13,27 +13,25 @@ public class AuthRepository: AuthRepositoryProtocol {
     private let deviceInfoProvider: DeviceInfoProvidingProtocol
     private let logger: any AppLoggerProtocol = AppLogger.shared
     private let chatTokenManager: any ChatTokenManagerProtocol
+    private let userIdentifier: String?
     
     init(
         deviceInfoProvider: DeviceInfoProvidingProtocol,
         httpDataSource: HTTPAuthDataSourceProtocol,
-        chatTokenManager: any ChatTokenManagerProtocol
+        chatTokenManager: any ChatTokenManagerProtocol,
+        userIdentifier: String? = nil
     ) {
         self.httpDatasource = httpDataSource
         self.deviceInfoProvider = deviceInfoProvider
         self.chatTokenManager = chatTokenManager
+        self.userIdentifier = userIdentifier
     }
    public func authenticate() async -> AuthSessionInfo? {
        // Plan SDK, step 1.3. Who the user is: the `appUserId` that the app's `verify-user`
-       // webhook returns for the Bearer token (Identity, answer of 2026-11-05). No user
-       // identifier is sent, so this no longer depends on the wallet.
-       let req = AuthRequest.mapper(deviceInfo: deviceInfoProvider.captureDeviceContext())
-//       let req = AuthRequest.mapper(deviceInfo: deviceInfoProvider.captureDeviceContext(), userIdentifier: "<user-id>")
-       // 611768bb8b70e0c342bedd7b YOHANA ndikumana user id
-       // 645a3503ddb88a00085da11b sarah mwamba user id
-       // <user-id> <name>
- // 110691817141112601
-       
+       // webhook returns for the Bearer token (Identity, answer of 2026-11-05). For the time being
+       // the host can also pass a `userIdentifier` (AppConfiguration.chatUserId), sent as
+       // `user_identifier`; with none, nothing is sent and this does not depend on the wallet.
+       let req = AuthRequest.mapper(deviceInfo: deviceInfoProvider.captureDeviceContext(), userIdentifier: userIdentifier)
 //       let req = AuthRequest.fakeUser
        
        do {

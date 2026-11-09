@@ -607,6 +607,9 @@ public actor APIClient: APIClientProtocol {
             throw APIError.invalidResponse
         }
 
+        // L'en-tête `Date` donne l'heure du serveur — voir `ServerClock`.
+        ServerClock.shared.observe(response: http)
+
         // Voir `BusinessErrorEnvelopeEndpoint` : le code métier ne se perd pas.
         if deliversBusinessErrors,
            BusinessErrorEnvelope.delivers(statusCode: http.statusCode, body: data) {

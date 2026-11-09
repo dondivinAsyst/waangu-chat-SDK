@@ -8,6 +8,7 @@
 import Foundation
 import CryptoKit
 import WaanguCoreKit
+import WaanguNetworkKit
 
 /// Orchestre l'envoi d'argent, de l'accord de l'utilisateur à l'exécution.
 ///
@@ -75,7 +76,7 @@ public struct SendMoneyUseCase: Sendable {
 
         // 1. Péremption. Contrôle qui peut enfin se déclencher — `expiresAt`
         //    est obligatoire sur `TransferQuote`.
-        guard !agreed.isExpired() else {
+        guard !agreed.isExpired(asOf: ServerClock.shared.now) else {
             return .failed(.expired)
         }
 
@@ -91,7 +92,7 @@ public struct SendMoneyUseCase: Sendable {
 
         // Le devis rafraîchi peut lui-même être déjà périmé si le backend en a
         // raccourci la validité.
-        guard !refreshed.isExpired() else { return .failed(.expired) }
+        guard !refreshed.isExpired(asOf: ServerClock.shared.now) else { return .failed(.expired) }
 
         // 5. Divergence. Aucun champ décisionnel n'a le droit d'avoir bougé :
         //    l'utilisateur n'a pas consenti à « environ ce montant ».
