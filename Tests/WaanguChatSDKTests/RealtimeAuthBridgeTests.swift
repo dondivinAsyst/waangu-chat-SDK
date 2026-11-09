@@ -96,4 +96,48 @@ final class RealtimeAuthBridgeTests: XCTestCase {
     func test_refreshesNinetySecondsBeforeExpiry() {
         XCTAssertEqual(bridge(accessValid: true, refreshValid: true, token: "t").tokenRefreshThreshold, 90)
     }
+
+    // MARK: Expired chat session, renewed by logging in again
+
+    func test_anExpiredSession_isRenewed_whenTheHostCanLogInAgain() async throws {
+        let tokens = RenewableChatTokens()
+        let bridge = RealtimeAuthBridge(tokenManager: tokens, eventBus: EventBus.shared,
+                                        reauthenticate: { await tokens.renew(to: "new-session") })
+
+        let credentials = try await bridge.realtimeClientNeedsToken()
+
+        XCTAssertEqual(credentials.token, "new-session")
+    }
+
+    func test_anExpiredSession_staysExpired_whenTheNewLoginFails() async {
+        let tokens = RenewableChatTokens()
+        let bridge = RealtimeAuthBridge(tokenManager: tokens, eventBus: EventBus.shared,
+                                        reauthenticate: { false })
+        do {
+            _ = try await bridge.realtimeClientNeedsToken()
+            XCTFail("a failed login must not connect")
+        } catch let error as RealtimeError {
+            guard case .authenticationFailed(let reason) = error else {
+                return XCTFail("wrong error: \(error)")
+            }
+            XCTAssertTrue(reason.contains("session expired"), reason)
+        } catch {
+            XCTFail("wrong error type: \(error)")
+        }
+    }
+}
+
+/// Chat tokens that start expired and become valid when `renew(to:)` runs, like a new chat login.
+private actor RenewableChatTokens: ChatTokenManagerProtocol {
+    private var token: String?
+
+    func renew(to newToken: String) -> Bool { token = newToken; return true }
+
+    func saveTokens(accessToken: String, accessTokenExpiration: Date,
+                    refreshToken: String, refreshTokenExpiration: Date) async throws {}
+    func clearTokens() async throws { token = nil }
+    func getAccessToken() async throws -> String? { token }
+    func getRefreshToken() async throws -> String? { nil }
+    func hasValidAccessToken() async -> Bool { token != nil }
+    func hasValidRefreshToken() async -> Bool { false }
 }

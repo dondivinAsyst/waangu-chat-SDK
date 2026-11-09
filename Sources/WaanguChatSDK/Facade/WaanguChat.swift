@@ -103,9 +103,21 @@ public final class WaanguChat: @unchecked Sendable {
         self.chatTokenManager = chatTokens
         let preferences = PreferenceStore()
         self.preferenceStore = preferences
-        self.appSettings = appSettings ?? AppSettings(store: preferences)
+        let settings: any AppSettingsProtocol = appSettings ?? AppSettings(store: preferences)
+        self.appSettings = settings
 
-        let authBridge = RealtimeAuthBridge(tokenManager: chatTokens, eventBus: EventBus.shared)
+        // The chat session lasts 24 hours and cannot be refreshed: when it runs out, log in to
+        // chat again with the host's token. Used by the realtime connection and by the lifecycle.
+        let renewChatSession: @Sendable () async -> Bool = {
+            guard let feature = try? await FeatureRegistry.shared.feature(ChatFeature.self),
+                  let session = await feature.authRepository.authenticate() else { return false }
+            settings.chatSessionExpireDate = session.expiresAt
+            settings.lastLoginDate = Date()
+            return true
+        }
+
+        let authBridge = RealtimeAuthBridge(tokenManager: chatTokens, eventBus: EventBus.shared,
+                                            reauthenticate: renewChatSession)
         let deviceContext = deviceInfoProvider.captureDeviceContext()
         let deviceTier = DeviceTier(
             deviceInfoSnapshot: deviceInfoProvider.captureSnapshot(),
@@ -190,7 +202,8 @@ public final class WaanguChat: @unchecked Sendable {
         self.lifecycle = ChatSessionLifecycle(
             realtime: realtime,
             sync: ChatSyncRunner(sync: engine),
-            chatTokenManager: chatTokens
+            chatTokenManager: chatTokens,
+            renewSession: renewChatSession
         )
     }
 

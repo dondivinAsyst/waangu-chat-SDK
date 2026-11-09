@@ -26,7 +26,8 @@ final class ChatSessionLifecycleTests: XCTestCase {
     private func makeRig(access: Bool = true,
                          refresh: Bool = true,
                          callActive: Bool = false,
-                         connectError: Error? = nil) -> Rig {
+                         connectError: Error? = nil,
+                         renew: (@Sendable () async -> Bool)? = nil) -> Rig {
         let events = EventLog()
         let realtime = RecordingRealtimeClient()
         realtime.connectError = connectError
@@ -38,7 +39,8 @@ final class ChatSessionLifecycleTests: XCTestCase {
             sync: ChatSyncRunner(sync: sync),
             chatTokenManager: FlagTokens(access: access, refresh: refresh),
             logger: logger,
-            retainsRealtimeInBackground: { callActive }
+            retainsRealtimeInBackground: { callActive },
+            renewSession: renew
         )
         return Rig(lifecycle: lifecycle, realtime: realtime, sync: sync, logger: logger, events: events)
     }
@@ -97,6 +99,41 @@ final class ChatSessionLifecycleTests: XCTestCase {
         await rig.lifecycle.userDidSignIn()
         try await waitFor(rig, "pull")
 
+        XCTAssertEqual(rig.realtime.connectCount, 1)
+    }
+
+    // MARK: Session de chat expirée
+
+    /// La session de chat de 24 h a pris fin pendant que l'application restait ouverte : si l'hôte
+    /// sait se reconnecter, le temps réel repart.
+    func test_anExpiredSession_isRenewed_thenRealtimeConnects() async throws {
+        let events = EventLog()
+        let rig = makeRig(access: false, refresh: false, renew: { events.add("renew"); return true })
+
+        await rig.lifecycle.appDidEnterForeground()
+        try await waitFor(rig, "pull")
+
+        XCTAssertEqual(events.names, ["renew"])
+        XCTAssertEqual(rig.realtime.connectCount, 1)
+    }
+
+    func test_anExpiredSession_staysOffline_whenTheNewLoginFails() async throws {
+        let rig = makeRig(access: false, refresh: false, renew: { false })
+
+        await rig.lifecycle.appDidEnterForeground()
+        try await waitFor(rig, "pull")
+
+        XCTAssertEqual(rig.realtime.connectCount, 0)
+    }
+
+    func test_aValidSession_isNotRenewed() async throws {
+        let events = EventLog()
+        let rig = makeRig(access: true, refresh: true, renew: { events.add("renew"); return true })
+
+        await rig.lifecycle.appDidEnterForeground()
+        try await waitFor(rig, "pull")
+
+        XCTAssertEqual(events.names, [])
         XCTAssertEqual(rig.realtime.connectCount, 1)
     }
 

@@ -29,6 +29,9 @@ public final class RealtimeAuthBridge: RealtimeAuthDelegate, Sendable {
 
     private let tokenManager: any ChatTokenManagerProtocol
     private let eventBus: any EventBusProtocol
+    /// Logs in to chat again when its session has expired; `true` when a new one was saved.
+    /// `nil` keeps the old behaviour: an expired session just fails.
+    private let reauthenticate: (@Sendable () async -> Bool)?
 
     // MARK: - Configuration
 
@@ -40,10 +43,12 @@ public final class RealtimeAuthBridge: RealtimeAuthDelegate, Sendable {
 
     public init(
         tokenManager: any ChatTokenManagerProtocol,
-        eventBus: any EventBusProtocol
+        eventBus: any EventBusProtocol,
+        reauthenticate: (@Sendable () async -> Bool)? = nil
     ) {
         self.tokenManager = tokenManager
         self.eventBus = eventBus
+        self.reauthenticate = reauthenticate
     }
 
     // MARK: - RealtimeAuthDelegate
@@ -78,7 +83,13 @@ public final class RealtimeAuthBridge: RealtimeAuthDelegate, Sendable {
             return makeCredentials(token: token)
         }
 
-        // Cas 3 — aucun token valide → session expirée.
+        // Cas 3 — aucun token valide → session expirée. Une nouvelle connexion au chat,
+        // si l'hôte en fournit une, en crée une autre sans que l'utilisateur ne fasse rien.
+        if let reauthenticate, await reauthenticate(),
+           await tokenManager.hasValidAccessToken(),
+           let token = try await tokenManager.getAccessToken() {
+            return makeCredentials(token: token)
+        }
         throw RealtimeError.authenticationFailed(
             reason: "No valid token available — session expired"
         )

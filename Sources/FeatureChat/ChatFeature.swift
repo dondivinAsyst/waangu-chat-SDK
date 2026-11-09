@@ -1345,6 +1345,9 @@ public final class ChatFeature: FeatureLoadable {
         if let token = try? await dependencies.tokenManager.getAccessToken() {
             CurrentSessionInfo.shared.token = token ?? ""
         }
+        // Uploads read the token when they send, not the copy above, so a renewed host token is used.
+        let tokenManager = dependencies.tokenManager
+        CurrentSessionInfo.shared.tokenProvider = { try? await tokenManager.getAccessToken() }
     }
     
 

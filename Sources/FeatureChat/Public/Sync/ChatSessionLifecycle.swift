@@ -29,6 +29,7 @@ public actor ChatSessionLifecycle {
     private let chatTokenManager: any ChatTokenManagerProtocol
     private let logger: any AppLoggerProtocol
     private let retainsRealtimeInBackground: @Sendable () async -> Bool
+    private let renewSession: (@Sendable () async -> Bool)?
 
     public init(
         realtime: any RealtimeClientProtocol,
@@ -37,13 +38,15 @@ public actor ChatSessionLifecycle {
         logger: any AppLoggerProtocol = AppLogger.shared,
         retainsRealtimeInBackground: @escaping @Sendable () async -> Bool = {
             await MainActor.run { ChatCallLifecycle.shouldRetainRealtimeConnection }
-        }
+        },
+        renewSession: (@Sendable () async -> Bool)? = nil
     ) {
         self.realtime = realtime
         self.sync = sync
         self.chatTokenManager = chatTokenManager
         self.logger = logger
         self.retainsRealtimeInBackground = retainsRealtimeInBackground
+        self.renewSession = renewSession
     }
 
     /// L'utilisateur vient de se connecter, ou une session valide a été retrouvée au lancement.
@@ -82,7 +85,11 @@ public actor ChatSessionLifecycle {
     private func connectRealtimeIfAuthenticated() async {
         let hasAccess = await chatTokenManager.hasValidAccessToken()
         let hasRefresh = await chatTokenManager.hasValidRefreshToken()
-        guard hasAccess || hasRefresh else { return }
+        if !(hasAccess || hasRefresh) {
+            // The 24-hour chat session ran out while the app stayed open: log in again if the
+            // host gave a way to, otherwise stay offline as before.
+            guard let renewSession, await renewSession() else { return }
+        }
         do {
             try await realtime.connect()
         } catch {

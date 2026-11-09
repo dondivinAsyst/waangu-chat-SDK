@@ -102,6 +102,16 @@ public final class CurrentSessionInfo {
     public var token: String = ""
     public var baseUrl: String = ""
 
+    /// Asks the host for its access token each time one is needed, so a token the host renewed is
+    /// used at once. Set by `ChatFeature`; `token` is only the fallback when it is not set.
+    public var tokenProvider: (@Sendable () async -> String?)?
+
+    /// The host's current access token for the legacy upload paths.
+    public func currentToken() async -> String {
+        if let provider = tokenProvider, let fresh = await provider(), !fresh.isEmpty { return fresh }
+        return token
+    }
+
     // MARK: - Legacy aliases (drop-in for CurrentUser.shared)
 
     public var currentUid: String {

@@ -167,7 +167,8 @@ public final class UploadViewModel: NSObject, ObservableObject {
         var request = URLRequest(url: presignedUrl)
         request.httpMethod = "PUT"
         request.setValue(file.mimeType, forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(CurrentSessionInfo.shared.token)", forHTTPHeaderField: "Authorization")
+        let token = await CurrentSessionInfo.shared.currentToken()
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         
         let task = session.uploadTask(with: request, fromFile: file.url) { [weak self] data, response, error in
             self?.handleUploadCompletion(filename: filename, response: response, error: error)

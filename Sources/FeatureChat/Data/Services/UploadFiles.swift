@@ -48,7 +48,7 @@ public func requestPresignedURL(filename: String) async throws -> UploadLinkResp
 //    let location = "story"
 
     let baseURL = CurrentSessionInfo.shared.baseUrl
-    let token = CurrentSessionInfo.shared.token
+    let token = await CurrentSessionInfo.shared.currentToken()
     
    
     guard !token.isEmpty else {
