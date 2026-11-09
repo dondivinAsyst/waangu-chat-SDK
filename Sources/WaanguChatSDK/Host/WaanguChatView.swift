@@ -105,12 +105,16 @@ public struct WaanguChatView: View {
         }
         self.chat = chat
         await chat.prepare()
-        await chat.startSession()
         do {
             coordinator = try await chat.makeCoordinator()
         } catch {
             failed = true
+            return
         }
+        // After the screens, and not awaited: `startSession()` waits on the host's token, a chat
+        // login and the realtime connect. Awaiting it here held the spinner and kept the chat's
+        // own sign-in screen from ever appearing.
+        Task { await chat.startSession() }
     }
 }
 
