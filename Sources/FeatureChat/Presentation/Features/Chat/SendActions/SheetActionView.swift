@@ -51,9 +51,9 @@ struct FileView: View {
                 VStack {
                     HStack {
                         Spacer().frame(width: 24)
-                        Image(systemName: "cloud").resizable().scaledToFit().frame(height: 28).foregroundStyle(.blue)
+                        Image(systemName: "cloud").resizable().scaledToFit().frame(height: 28).foregroundStyle(AppColors.primary)
                         Spacer().frame(width: 16)
-                        Text(t(ChatTranslationKeys.FILE_SELECT_FROM_FILES)).font(.headline).foregroundStyle(.blue)
+                        Text(t(ChatTranslationKeys.FILE_SELECT_FROM_FILES)).font(.headline).foregroundStyle(AppColors.primary)
                         Spacer()
                     }
                     .padding(.vertical, 20)
@@ -141,7 +141,7 @@ struct FileView: View {
                     Button(action: {
                         sendSelectedFiles()
                     }) {
-                        Text(common("send")).font(.headline).bold().foregroundColor(.blue)
+                        Text(common("send")).font(.headline).bold().foregroundColor(AppColors.primary)
                     }
                     .opacity(selectedFileURLs.isEmpty ? 0 : 1)
                     .disabled(selectedFileURLs.isEmpty)
@@ -630,7 +630,7 @@ struct SheetActionView: View {
                             WTabStrip(
                                 items: sheetTabItems,
                                 selection: $selectedTab,
-                                style: .iconAbove(tint: .blue)
+                                style: .iconAbove(tint: AppColors.primary)
                             )
                             .padding(.top, 10)
                             .padding(.bottom, safeAreaInsets.bottom)
@@ -737,7 +737,7 @@ struct SheetActionView: View {
                     .fontWeight(.bold)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Color.blue)
+                    .background(AppColors.primary)
                     .clipShape(Capsule())
             }
         }

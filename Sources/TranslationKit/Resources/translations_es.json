@@ -358,6 +358,7 @@
       "communities_join": "Unirse",
       "communities_join_group": "Unirse",
       "communities_join_with_code": "Unirse con un código",
+      "communities_join_code_hint": "Pide el código a un administrador de la comunidad y escríbelo o pégalo aquí.",
       "communities_leave": "Salir de la comunidad",
       "communities_loading": "Cargando comunidades…",
       "communities_make_admin": "Hacer administrador",

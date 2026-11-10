@@ -83,8 +83,8 @@ struct StoriesView: View {
 //                        }
                       
                                    HStack{
-                                       Text(t(ChatTranslationKeys.STORIES_STATUS_TITLE)).font(.title)
-                                                         .bold()
+                                       Text(t(ChatTranslationKeys.STORIES_STATUS_TITLE)).font(.title2.weight(.bold))
+                                                         .foregroundStyle(AppColors.textPrimary)
                                                          .padding(.top)
                                                          .padding(.horizontal)
                                        Spacer()
@@ -100,7 +100,7 @@ struct StoriesView: View {
                                            }
                                                )
                                            {   Image(systemName: "camera").resizable()
-                                                       .frame(width: 16,height: 16).padding(10).background(Color(.systemGray6)).clipShape(Circle()).foregroundColor(Color.primary)
+                                                       .frame(width: 16,height: 16).padding(10).foregroundColor(Color.primary).statusGlassCircle()
                                                    
                                                    //                                               .onTapGesture {
                                                    //                                                   print("Add photo")
@@ -113,7 +113,7 @@ struct StoriesView: View {
                                            }
                                                ){
                                           Image(systemName: "pencil").resizable()
-                                              .frame(width: 16,height: 16).padding(10).background(Color(.systemGray6)).clipShape(Circle()).foregroundColor(Color.primary)
+                                              .frame(width: 16,height: 16).padding(10).foregroundColor(Color.primary).statusGlassCircle()
                                            }
 //                                           NavigationLink(destination: EditorTabView(initialTab: .text))  {
 //                                                   Image(systemName: "pencil").resizable()
@@ -125,7 +125,7 @@ struct StoriesView: View {
 //                                                   //                                           }
 //                                               }
                                          
-                                       }.padding(.trailing)
+                                       }.padding(.trailing).padding(.top) // same top inset as the title, so they line up
                                        
                                     
                                    }.onAppear{
@@ -133,6 +133,13 @@ struct StoriesView: View {
                                    }
                                    
                                    // Horizontal stories
+                        // Nothing posted, by anyone: one "My status" row, as in
+                        // the messaging apps people know, not an empty strip.
+                        if statusStore.hasLoadedInitialData,
+                           (statusStore.ownStatus?.status.count ?? 0) == 0,
+                           statusStore.contactStatus.isEmpty {
+                            myStatusRow()
+                        } else {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 4) {
                               
@@ -191,7 +198,11 @@ struct StoriesView: View {
                                             .padding([.top, .leading], 8)
                                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
-                                            Text(t(ChatTranslationKeys.STORIES_MY_STATUS)).foregroundColor(.white).bold() .font(.headline).frame(width:100, alignment: .center).padding(.bottom,10)
+                                            // Same label as the contact cards beside it.
+                                            Text(t(ChatTranslationKeys.STORIES_MY_STATUS)).foregroundColor(.white).bold().font(.caption)
+                                                .lineLimit(1).padding(.horizontal, 6)
+                                                .shadow(color: .black.opacity(0.6), radius: 3, y: 1)
+                                                .frame(width:100, alignment: .center).padding(.bottom,10)
                                         }
                                         .frame(width: 100, height: 170)
                                         .background(.red.opacity(0.5))
@@ -216,22 +227,20 @@ struct StoriesView: View {
                                             )
                                             Spacer()
                                             Text(t(ChatTranslationKeys.STORIES_MY_STATUS))
-                                                .foregroundColor(AppColors.primary)
-                                                .bold()
-                                                .font(.headline)
+                                                .foregroundColor(AppColors.textPrimary)
+                                                .font(.subheadline.weight(.semibold))
                                                 .frame(width: 100, alignment: .center)
                                                 .padding(.bottom, 10)
                                             
                                         }
                                         .frame(width: 100, height: 170)
+                                        // A soft card like the others in the strip, not a thick blue frame.
+                                        .background(Color(.secondarySystemBackground),
+                                                    in: RoundedRectangle(cornerRadius: 16))
                                         .contentShape(RoundedRectangle(cornerRadius: 16))
                                         .onTapGesture {
                                             statusStore.openMyStatusList(coord: navigationCoordinator)
                                         }
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 16)
-                                                .stroke(AppColors.primary, lineWidth: 2)     // your border
-                                        )
                                         .id("stories-own-status-card")
                                         .transaction { $0.animation = nil }
                                     }
@@ -264,6 +273,10 @@ struct StoriesView: View {
                                                 .foregroundColor(.white)
                                                 .bold()
                                                 .font(.caption)
+                                                .lineLimit(1)
+                                                .padding(.horizontal, 6)
+                                                // Readable on a light photo too.
+                                                .shadow(color: .black.opacity(0.6), radius: 3, y: 1)
                                                 .frame(width: 100, alignment: .center)
                                                 .padding(.bottom, 10)
                                         }
@@ -304,6 +317,7 @@ struct StoriesView: View {
                                 
                             }
                             .padding(.leading,10)
+                        }
                         }
                         ChannelsSectionView(
                             viewModel: channelsViewModel,
@@ -641,18 +655,33 @@ struct StoryProfileView: View {
         ZStack(alignment: .bottomTrailing) {
 
             ZStack {
-                ImageViewComponent(
-                    url: URL(string: story?.userImage ?? ""),
-                    width: 50,
-                    height: 50,
-                    name: story?.userName ?? "User",
-                    borderWidth: 0,
-                    isMyStatusEmpty: currentUser && (story?.status.isEmpty ?? true)
-                )
-                if !(story?.viewed ?? false) && !currentUser {
-                    Circle()
-                        .stroke(AppColors.primary, lineWidth: 3)
-                        .frame(width: 55, height: 55)
+                if currentUser {
+                    // The user's own photo, or their initials on the app blue —
+                    // the same small corner avatar as the contact cards.
+                    CircularProfileImageView(
+                        (story?.userImage).flatMap { $0.isEmpty ? nil : $0 } ?? CurrentSessionInfo.shared.userProfile,
+                        size: .custom(30),
+                        name: CurrentSessionInfo.shared.userName
+                    )
+                    .padding(2)
+                    .background(Circle().fill(Color.white))
+                    .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
+                } else {
+                    // A contact on a status card: small, in the corner, so the
+                    // status itself stays readable. Their photo or initials —
+                    // never the app logo. A white gap separates the "new" ring
+                    // from the avatar, so the ring shows on any status colour.
+                    let unviewed = !(story?.viewed ?? false)
+                    CircularProfileImageView(
+                        story?.userImage ?? "",
+                        size: .custom(30),
+                        name: story?.userName
+                    )
+                    .padding(2)
+                    .background(Circle().fill(Color.white))
+                    .padding(2)
+                    .background(Circle().fill(unviewed ? AppColors.primary : Color.white.opacity(0.6)))
+                    .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
                 }
                
             }
@@ -662,13 +691,14 @@ struct StoryProfileView: View {
                     Image(systemName: "plus")
                         .resizable()
                         .foregroundColor(.white)
-                        .frame(width: 10, height: 10)
-                        .padding(4)
+                        .frame(width: 8, height: 8)
+                        .padding(3)
                         .background(AppColors.primary)
                         .clipShape(Circle())
-                        .offset(x: 20, y: 20)
+                        .overlay(Circle().strokeBorder(Color.white, lineWidth: 1.5))
+                        .offset(x: 12, y: 12)
                 }
-                .frame(width: 50, height: 50)
+                .frame(width: 34, height: 34)
                 .background(Color.white.opacity(0.01))
                 .onTapGesture {
                     showAddStatusSheet = .addStatus
@@ -681,6 +711,55 @@ struct StoryProfileView: View {
 }
 
 extension StoriesView {
+
+    /// "My status / Add to my status", with the user's avatar and a "+", then
+    /// one grey line saying what a status is. Tapping adds a status.
+    @ViewBuilder
+    func myStatusRow() -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button {
+                activeSheet = .addStatus
+            } label: {
+                HStack(spacing: 12) {
+                    CircularProfileImageView(
+                        CurrentSessionInfo.shared.userProfile,
+                        size: .custom(56),
+                        name: CurrentSessionInfo.shared.userName
+                    )
+                    .overlay(alignment: .bottomTrailing) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Color.white)
+                            .frame(width: 22, height: 22)
+                            .background(AppColors.primary, in: Circle())
+                            .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 2))
+                            .offset(x: 2, y: 2)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(t(ChatTranslationKeys.STORIES_MY_STATUS))
+                            .font(.headline)
+                            .foregroundStyle(AppColors.textPrimary)
+                        Text(t(ChatTranslationKeys.STORIES_ADD_TO_STATUS))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Text(t(ChatTranslationKeys.STORIES_STATUS_HEADER))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 6)
+        .transition(.opacity)
+    }
+
     private func t(_ key: String, args: [String] = []) -> String {
         translationService?.resolve(key: key, module: ChatTranslationKeys.MODULE, args: args).value ?? key
     }
@@ -741,6 +820,19 @@ extension StoriesView {
                 .foregroundStyle(AppColors.textPrimary)
                 .padding(9)
                 .background(Circle().fill(Color(.systemGray5)))
+        }
+    }
+}
+
+
+private extension View {
+    /// A round button in the liquid-glass style of the bar buttons around it.
+    @ViewBuilder
+    func statusGlassCircle() -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular.interactive(), in: .circle)
+        } else {
+            self.background(.ultraThinMaterial, in: Circle())
         }
     }
 }

@@ -130,11 +130,14 @@ class TextInputToolbarAreaView: UIView {
         // TextField Setup
         textField.font = UIFont.systemFont(ofSize: 16)
         textField.isScrollEnabled = false
-        textField.layer.cornerRadius = 15
-        textField.layer.borderWidth = 1
-        textField.layer.borderColor = UIColor.systemGray5.cgColor
+        // A soft filled pill, no outline: the outline read as a heavy black
+        // frame around the field.
+        textField.layer.cornerRadius = 18
+        textField.layer.cornerCurve = .continuous
+        textField.layer.borderWidth = 0
+        // White (dark grey in dark mode) so the field stands out on the bar's tint.
         textField.backgroundColor = .systemBackground
-        textField.textContainerInset = UIEdgeInsets(top: 6, left: 10, bottom: 6, right: 10)
+        textField.textContainerInset = UIEdgeInsets(top: 8, left: 12, bottom: 8, right: 12)
         textField.delegate = self
         addSubview(textField)
         
@@ -145,7 +148,7 @@ class TextInputToolbarAreaView: UIView {
         
         // Camera Button
         cameraButton.setImage(UIImage(systemName: "camera.fill"), for: .normal)
-        cameraButton.tintColor = .label
+        cameraButton.tintColor = UIColor(AppColors.primary)
         cameraButton.addTarget(self, action: #selector(openCamera), for: .touchUpInside)
         // A long press records a video note instead. Recognising it cancels the
         // button's touch, so the tap does not open the camera as well.
@@ -163,7 +166,7 @@ class TextInputToolbarAreaView: UIView {
 
         // Plus Button
         plusButton.setImage(UIImage(systemName: "plus"), for: .normal)
-        plusButton.tintColor = .label
+        plusButton.tintColor = UIColor(AppColors.primary)
         plusButton.addTarget(self, action: #selector(showActionSheet), for: .touchUpInside)
         addSubview(plusButton)
         
@@ -279,8 +282,8 @@ class TextInputToolbarAreaView: UIView {
             textField.topAnchor.constraint(equalTo: topAnchor, constant: 10),
             textField.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
             
-            placeholderLabel.leadingAnchor.constraint(equalTo: textField.leadingAnchor, constant: 12),
-            placeholderLabel.topAnchor.constraint(equalTo: textField.topAnchor, constant: 7),
+            placeholderLabel.leadingAnchor.constraint(equalTo: textField.leadingAnchor, constant: 17),
+            placeholderLabel.topAnchor.constraint(equalTo: textField.topAnchor, constant: 8),
             
             actionButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
             actionButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
@@ -526,11 +529,11 @@ final class ReplyViewContainer: UIView {
         layer.cornerRadius = 10
         clipsToBounds = true
         
-        colorBar.backgroundColor = .systemBlue
+        colorBar.backgroundColor = UIColor(AppColors.primary)
         colorBar.layer.cornerRadius = 2
         
         senderLabel.font = .systemFont(ofSize: 14, weight: .semibold)
-        senderLabel.textColor = .systemBlue
+        senderLabel.textColor = UIColor(AppColors.primary)
         senderLabel.text = msg.isSentByMe ? "You" : msg.senderName
         
         let replyContent = makeReplyContentView(msg)

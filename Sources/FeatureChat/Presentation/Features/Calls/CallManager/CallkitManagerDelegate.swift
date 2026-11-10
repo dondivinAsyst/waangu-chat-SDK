@@ -54,7 +54,8 @@ class CallKitManager: NSObject {
         configuration.includesCallsInRecents = true //  Production
         configuration.supportedHandleTypes = [.generic, .phoneNumber]
         configuration.ringtoneSound = "ringtone.caf"
-        configuration.iconTemplateImageData = UIImage(named: "callkit-icon")?.pngData()
+        // From the package's own assets: a host app has no "callkit-icon" of its own.
+        configuration.iconTemplateImageData = UIImage(named: "callkit-icon", in: .module, with: nil)?.pngData()
         
         // 🔧 Configuration avancée production
         configuration.supportsVideo = true

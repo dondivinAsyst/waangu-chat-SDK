@@ -45,7 +45,6 @@ struct ChatsDestinationView: View {
                 messagesStoreFactory: { coordinator.feature.makeChatRoomMessagesStore() },
                 financeSurface: coordinator.feature.financeSurface
             )
-            .toolbar(.hidden, for: .navigationBar)
             
         case .copilot:
             CopilotChatScreen(
@@ -73,7 +72,6 @@ struct ChatsDestinationView: View {
                 fallbackDisplayName: fallbackDisplayName,
                 isBlocked:isBlocked
             )
-            .toolbar(.hidden, for: .navigationBar)
             
         case let .groupInfoView(discussionId, groupName):
             if #available(iOS 17.0, *) {

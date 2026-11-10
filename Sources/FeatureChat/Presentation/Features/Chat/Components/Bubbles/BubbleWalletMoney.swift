@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WaanguSharedUI
 
 struct BubbleWalletMoney: View {
     let message:MessageItem
@@ -115,11 +116,11 @@ struct BubbleWalletMoney: View {
                 .foregroundColor(ChatBubbleStyle.secondaryForeground(for: colorScheme))
             
             if message.direction == .sent {
-                Image.custom("double.stick")
+                Image("doubleStick", bundle: .module)
                     .resizable()
                     .renderingMode(.template)
                     .frame(width: 22,height: 22)
-                    .foregroundColor(Color(.systemBlue))
+                    .foregroundColor(AppColors.primary)
                    
             }
             

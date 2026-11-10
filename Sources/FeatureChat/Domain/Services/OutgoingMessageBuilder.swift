@@ -391,7 +391,7 @@ enum OutgoingMessagePublisher {
         print("[OutgoingMessagePublisher] dto senderPhone=\(dto.senderPhone) type=\(dto.typeMessage)")
         #endif
         try? await realtime.publish(
-            dto,
+            dto.withFreshNonce(),
             to: ChatMQTTTopics.In.sendMessage,
             qos: .atLeastOnce,
             priority: .high

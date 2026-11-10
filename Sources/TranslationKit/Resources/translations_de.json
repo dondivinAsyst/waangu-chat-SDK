@@ -358,6 +358,7 @@
       "communities_join": "Beitreten",
       "communities_join_group": "Beitreten",
       "communities_join_with_code": "Mit Einladungscode beitreten",
+      "communities_join_code_hint": "Frag einen Admin der Community nach dem Code und gib ihn hier ein oder füge ihn ein.",
       "communities_leave": "Community verlassen",
       "communities_loading": "Communitys werden geladen…",
       "communities_make_admin": "Zum Admin machen",

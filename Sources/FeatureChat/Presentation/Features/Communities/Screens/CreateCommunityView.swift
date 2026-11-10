@@ -57,11 +57,12 @@ struct CreateCommunityView: View {
 
     @ViewBuilder
     private func fields() -> some View {
-        CreateFormField {
+        CreateFormField(symbol: "pencil") {
             TextField(t(ChatTranslationKeys.COMMUNITIES_NAME), text: $name)
+                .textInputAutocapitalization(.words)
         }
 
-        CreateFormField {
+        CreateFormField(symbol: "text.alignleft", iconAlignment: .top) {
             TextField(
                 t(ChatTranslationKeys.COMMUNITIES_DESCRIPTION_HINT),
                 text: $description,
@@ -70,7 +71,7 @@ struct CreateCommunityView: View {
             .lineLimit(3...6)
         }
 
-        CreateFormField {
+        CreateFormField(symbol: "lock.fill") {
             Toggle(t(ChatTranslationKeys.COMMUNITIES_PRIVATE), isOn: $isPrivate)
                 .tint(AppColors.primary)
         }

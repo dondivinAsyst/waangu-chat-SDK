@@ -2066,8 +2066,8 @@ private struct GroupAdminsSheet: View {
                         .font(.caption2)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.12))
-                        .foregroundStyle(.blue)
+                        .background(AppColors.primary.opacity(0.12))
+                        .foregroundStyle(AppColors.primary)
                         .clipShape(Capsule())
                 }
             }

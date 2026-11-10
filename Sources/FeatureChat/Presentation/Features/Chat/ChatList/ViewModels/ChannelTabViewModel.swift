@@ -225,7 +225,10 @@ public final class ChannelTabViewModel: ObservableObject {
             updatedChat.setting?.conversation = updatedChat.conversationId
             updatedChat.setting?.archivedAt = Date()
             
-            archivedDiscussions.append(updatedChat)
+            // At its place by last-message date, not at the end: the refresh
+            // ignores order changes (`arraysHaveSameContent`), so an appended row
+            // would stay last.
+            Self.insertByRecency(updatedChat, into: &archivedDiscussions)
             // ✅ FIX: Update visible discussions after archiving
             updateVisibleDiscussions()
             Task { @MainActor in
@@ -251,7 +254,10 @@ public final class ChannelTabViewModel: ObservableObject {
             updatedChat.setting?.conversation = updatedChat.conversationId
             updatedChat.setting?.archivedAt = nil
             
-            discussions.append(updatedChat)
+            // At its place by last-message date, not at the end: the refresh
+            // ignores order changes (`arraysHaveSameContent`), so an appended row
+            // would stay last.
+            Self.insertByRecency(updatedChat, into: &discussions)
             // ✅ FIX: Update visible discussions after unarchiving
             updateVisibleDiscussions()
             Task { @MainActor in
@@ -391,6 +397,14 @@ public final class ChannelTabViewModel: ObservableObject {
 
         // ✅ FIX: Remove computed property and replace with cached value
         // The visibleDiscussions array is now updated only when data actually changes
+        /// Inserts `chat` before the first conversation whose last message is
+        /// older — the newest-first order `updateDiscussions` sorts by.
+        static func insertByRecency(_ chat: DiscussionChatItem, into list: inout [DiscussionChatItem]) {
+            let date = chat.lastMessage.createdAt
+            let index = list.firstIndex(where: { $0.lastMessage.createdAt < date }) ?? list.endIndex
+            list.insert(chat, at: index)
+        }
+
         private func updateVisibleDiscussions() {
             visibleDiscussions = filteredDiscussions(from: discussions)
         }

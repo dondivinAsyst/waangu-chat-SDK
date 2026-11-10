@@ -7,6 +7,7 @@
 
 
 import SwiftUI
+import WaanguSharedUI
 import WaanguCoreKit
 
 // MARK: - Message Sticky Header
@@ -63,7 +64,7 @@ struct TextInputToolbarSwiftUIView: View {
             }) {
                 Image(systemName: "plus.circle.fill")
                     .font(.title2)
-                    .foregroundColor(.blue)
+                    .foregroundColor(AppColors.primary)
             }
             
             // Text field
@@ -93,7 +94,7 @@ struct TextInputToolbarSwiftUIView: View {
             Button(action: sendMessage) {
                 Image(systemName: messageText.isEmpty ? "mic.fill" : "arrow.up.circle.fill")
                     .font(.title2)
-                    .foregroundColor(.blue)
+                    .foregroundColor(AppColors.primary)
             }
         }
         .padding(.horizontal, 12)
@@ -205,7 +206,7 @@ struct MessageMenuSwiftUIView: View {
             HStack(spacing: 12) {
                 Image(systemName: icon)
                     .font(.body)
-                    .foregroundColor(isDestructive ? .red : .blue)
+                    .foregroundColor(isDestructive ? .red : AppColors.primary)
                     .frame(width: 24)
                 
                 Text(title)

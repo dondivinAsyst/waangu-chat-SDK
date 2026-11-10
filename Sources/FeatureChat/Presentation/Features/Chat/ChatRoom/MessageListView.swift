@@ -219,7 +219,7 @@ struct MessageListView: View {
     // MARK: - Background View
     
     private var backgroundView: some View {
-        Image("chatBackground", bundle: .nativeUi)
+        Image("chatBackground", bundle: .module)
             .resizable()
             .ignoresSafeArea()
     }
@@ -519,6 +519,23 @@ struct MessageListView: View {
             return
         }
 
+        // Until the user touches the list, it follows the newest message,
+        // whatever arrives. The unread messages reach the list just after the
+        // room opens; with the `isNearBottom` check below they landed under the
+        // screen and the room sat on the last message already read.
+        //
+        // The list's own `scrollToBottom`, with its animation, once now and once
+        // on the next frame: the second lands after the new rows are measured
+        // (call and money cards are taller than the lazy stack's estimate).
+        if !hasUserScrolled, !viewModel.shouldShowGroupIntroHeader {
+            scrollToBottom()
+            DispatchQueue.main.async {
+                guard !hasUserScrolled else { return }
+                scrollToBottom()
+            }
+            return
+        }
+
         if !isNearBottom {
             refreshPendingNewMessageCount()
         }
@@ -686,6 +703,8 @@ struct MessageListView: View {
         animated: Bool = true,
         shouldHighlight: Bool = true
     ) {
+        // The room now shows a chosen message: stop following the bottom.
+        hasUserScrolled = true
         if animated {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
                 scrollProxy?.scrollTo(messageId, anchor: position)

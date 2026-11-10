@@ -1,4 +1,5 @@
 import SwiftUI
+import WaanguSharedUI
 import WaanguCoreKit
 
 enum SharedMediaTab: String, CaseIterable {
@@ -107,7 +108,7 @@ struct SharedMediaGalleryView: View {
                     HStack(spacing: 12) {
                         Image(systemName: docIcon(for: msg.message.mimeType))
                             .font(.title2)
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(AppColors.primary)
                             .frame(width: 40)
 
                         VStack(alignment: .leading, spacing: 4) {

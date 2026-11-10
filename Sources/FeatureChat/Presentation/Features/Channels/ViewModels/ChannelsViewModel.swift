@@ -36,6 +36,10 @@ public final class ChannelsViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var isWorking = false
     @Published var errorMessage: String?
+    /// Why the channel list could not be read, shown in place of the list with
+    /// a retry. Kept apart from `errorMessage`, which is an alert: a background
+    /// read that fails must not throw a modal over a screen the user just opened.
+    @Published private(set) var loadError: String?
     /// Suggestions the user waved away, for as long as this screen lives.
     @Published private var dismissedSuggestions: Set<String> = []
 
@@ -96,10 +100,10 @@ public final class ChannelsViewModel: ObservableObject {
             // are missing, never rewrites one that exists.
             await ChannelLocalConversationSync.ensureAll(subscribed, discussionUseCases: discussionUseCases)
             followed = await withPreviews(subscribed)
-            errorMessage = nil
+            loadError = nil
         } catch {
             if subscribed.isEmpty && discovered.isEmpty {
-                errorMessage = message(for: error)
+                loadError = message(for: error)
             }
         }
     }

@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import WaanguSharedUI
 
 struct ChannelInviteLinkSheet: View {
     
@@ -107,7 +108,7 @@ struct ChannelInviteLinkSheet: View {
                         viewModel.copyInviteLinkToClipboard()
                     } label: {
                         Image(systemName: "doc.on.doc")
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppColors.primary)
                     }
                 }
             }
@@ -145,7 +146,7 @@ struct ChannelInviteLinkSheet: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue)
+                    .background(AppColors.primary)
                     .foregroundColor(.white)
                     .cornerRadius(12)
                 }
@@ -208,7 +209,7 @@ struct ChannelInviteLinkSheet: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.blue)
+                .background(AppColors.primary)
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }
@@ -223,7 +224,7 @@ struct ChannelInviteLinkSheet: View {
         VStack(spacing: 16) {
             Image(systemName: "link.badge.plus")
                 .font(.system(size: 60))
-                .foregroundColor(.blue)
+                .foregroundColor(AppColors.primary)
             
             Text("No Invite Link")
                 .font(.title2)
@@ -254,7 +255,7 @@ struct ChannelInviteLinkSheet: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.blue)
+                .background(AppColors.primary)
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }
@@ -284,7 +285,7 @@ struct ChannelInviteLinkSheet: View {
     private func statsRow(icon: String, text: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(.blue)
+                .foregroundColor(AppColors.primary)
                 .frame(width: 24)
             Text(text)
                 .font(.subheadline)
@@ -296,7 +297,7 @@ struct ChannelInviteLinkSheet: View {
     private func featureRow(icon: String, text: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(.blue)
+                .foregroundColor(AppColors.primary)
                 .frame(width: 24)
             Text(text)
                 .font(.subheadline)

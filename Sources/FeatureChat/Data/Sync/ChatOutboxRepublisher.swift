@@ -30,8 +30,12 @@ enum ChatOutboxRepublisher {
         switch item.actionType {
 
         case .sendMessage:
-            try await publish(item, as: OutboundMessageDTO.self,
-                              to: ChatMQTTTopics.In.sendMessage, priority: .high, realtime: realtime)
+            // Same message, same `codeMessage` — a new nonce for this attempt.
+            guard let dto = try? JSONDecoder().decode(OutboundMessageDTO.self, from: item.payload) else {
+                throw ChatOutboxRepublishError.undecodablePayload(actionType: item.actionTypeString)
+            }
+            try await realtime.publish(dto.withFreshNonce(), to: ChatMQTTTopics.In.sendMessage,
+                                       qos: .atLeastOnce, priority: .high)
 
         case .modifyMessage:
             try await publish(item, as: OutboundModifyMessageDTO.self,

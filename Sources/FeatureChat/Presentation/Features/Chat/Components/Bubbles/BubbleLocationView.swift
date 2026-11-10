@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WaanguSharedUI
 import MapKit
 import WaanguCoreKit
 
@@ -165,7 +166,7 @@ struct BubbleLocationView: View {
                 } else {
                     Image(systemName: "mappin.circle.fill")
                         .font(.system(size: 30))
-                        .foregroundColor(Color(.systemBlue))
+                        .foregroundColor(AppColors.primary)
                 }
             }
             .frame(
@@ -193,7 +194,7 @@ struct BubbleLocationView: View {
                     Text(title)
                         .foregroundColor(ChatBubbleStyle.foreground(for: colorScheme))
                     Text(message.message.location?.address ?? "")
-                        .foregroundColor(Color(.systemBlue))
+                        .foregroundColor(AppColors.primary)
                         .font(.caption)
                         .lineLimit(1)
                 }

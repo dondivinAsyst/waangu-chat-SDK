@@ -241,11 +241,11 @@ struct BubbleContactView: View {
     private func nameView(_ contacts: [ContactItem], first: ContactItem) -> some View {
         if contacts.count > 1 {
             Text(t(ChatTranslationKeys.CONTACT_BUBBLE_OTHER_CONTACTS, args: [first.name ?? "Unknown", "\(contacts.count - 1)"]))
-                .foregroundStyle(.blue).lineLimit(2)
+                .foregroundStyle(AppColors.primary).lineLimit(2)
                 .font(.system(size: 15, weight: .bold, design: .default))
         } else {
             Text(first.name ?? PhoneNumberFormatter.format(first.phone))
-                .foregroundStyle(.blue).lineLimit(1)
+                .foregroundStyle(AppColors.primary).lineLimit(1)
                 .font(.system(size: 15, weight: .bold, design: .default))
                 .contentShape(Rectangle())
                 .onTapGesture {

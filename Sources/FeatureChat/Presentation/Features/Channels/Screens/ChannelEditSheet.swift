@@ -44,11 +44,11 @@ struct ChannelEditSheet: View {
             onCancel: onDismiss,
             onPhotoFailed: {}
         ) {
-            CreateFormField {
+            CreateFormField(symbol: "pencil") {
                 TextField(t(ChatTranslationKeys.CHANNELS_NAME), text: $name)
             }
 
-            CreateFormField {
+            CreateFormField(symbol: "text.alignleft", iconAlignment: .top) {
                 TextField(
                     t(ChatTranslationKeys.CHANNELS_DESCRIPTION_HINT),
                     text: $description,

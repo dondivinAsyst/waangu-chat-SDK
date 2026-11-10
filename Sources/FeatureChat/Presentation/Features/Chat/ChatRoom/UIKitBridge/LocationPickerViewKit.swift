@@ -8,6 +8,7 @@
 import UIKit
 import MapKit
 import SwiftUI
+import WaanguSharedUI
 import Combine
 
 
@@ -153,7 +154,7 @@ class ParallaxMapContainerViewController: UIViewController, UIScrollViewDelegate
     // MARK: - Setup Map
     
     private func mapPinView(in parent: UIView) {
-        centerPin.tintColor = .systemBlue
+        centerPin.tintColor = UIColor(AppColors.primary)
         centerPin.translatesAutoresizingMaskIntoConstraints = false
         parent.addSubview(centerPin)
         
@@ -237,7 +238,7 @@ class ParallaxMapContainerViewController: UIViewController, UIScrollViewDelegate
                 icon: action.icon,
                 name: action.name,
                 location: action.location,
-                color: action.action == .sendCurrentLocation ? .systemBlue : .systemGreen
+                color: action.action == .sendCurrentLocation ? UIColor(AppColors.primary) : .systemGreen
             )
             
             row.onTap = {
@@ -296,7 +297,7 @@ class ParallaxMapContainerViewController: UIViewController, UIScrollViewDelegate
             icon: data.icon,
             name: data.name,
             location: data.location,
-            color: .systemBlue ,
+            color: UIColor(AppColors.primary),
             isBordered: false
         )
         

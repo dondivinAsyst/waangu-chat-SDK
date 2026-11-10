@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import WaanguSharedUI
 import WaanguCoreKit
 
 @available(iOS 16.0, *)
@@ -28,7 +29,7 @@ struct ChatAppearancePickerView: View {
                         Spacer()
                         if store.defaultAppearance == pref {
                             Image(systemName: "checkmark")
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(AppColors.primary)
                         }
                     }
                 }

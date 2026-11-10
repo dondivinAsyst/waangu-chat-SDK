@@ -626,7 +626,7 @@ struct FinanceRecipientRow: View {
                     Text(recipient.actor.displayName).font(.body.weight(.semibold))
                     if recipient.actor.verification.showsTrustBadge {
                         Image(systemName: "checkmark.seal.fill")
-                            .font(.caption).foregroundStyle(.blue)
+                            .font(.caption).foregroundStyle(AppColors.primary)
                     }
                 }
                 if let warning {

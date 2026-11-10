@@ -1212,7 +1212,7 @@ struct StatusViewer: View {
                         autoPlay: true,
                         fromServer: !(playbackURL?.isFileURL ?? false),
                         contentMode: .fit,
-                        loaderColor: .blue,
+                        loaderColor: AppColors.primary,
                         OnStartPlaying: { duration in
                             markCurrentSegmentViewedIfNeeded(at: currentIndex)
                             // Stream now; cache full file + poster in background for strip preview.

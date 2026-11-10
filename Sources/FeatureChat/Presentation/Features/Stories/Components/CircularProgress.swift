@@ -1,11 +1,12 @@
 import SwiftUI
+import WaanguSharedUI
 
 struct CircularProgressBar: View {
     @Binding var progress: Double // 0.0 to 1.0
     
     var lineWidth: CGFloat = 20
     var backgroundColor: Color = Color(.systemGray5)
-    var foregroundColor: Color = .blue
+    var foregroundColor: Color = AppColors.primary
     var showPercentage: Bool = true
     var animation: Animation = .easeInOut(duration: 1.0)
     

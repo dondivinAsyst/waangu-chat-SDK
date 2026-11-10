@@ -22,7 +22,7 @@ public struct WPrimaryButton: View {
                 .frame(maxWidth: .infinity)
                 .padding()
                 .foregroundColor(isEnabled ? .white : Color(.systemGray))
-                .background(isEnabled ? Color.blue : Color(.systemGray5))
+                .background(isEnabled ? AppColors.primary : Color(.systemGray5))
                 .cornerRadius(20)
         }
         .disabled(!isEnabled)

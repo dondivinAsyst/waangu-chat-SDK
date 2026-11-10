@@ -358,6 +358,7 @@
       "communities_join": "Join",
       "communities_join_group": "Join",
       "communities_join_with_code": "Join with an invite code",
+      "communities_join_code_hint": "Ask a community admin for the code, then type or paste it here.",
       "communities_leave": "Leave community",
       "communities_loading": "Loading communities…",
       "communities_make_admin": "Make admin",

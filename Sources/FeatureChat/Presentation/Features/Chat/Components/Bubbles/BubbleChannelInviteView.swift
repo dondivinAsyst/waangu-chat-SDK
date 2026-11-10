@@ -50,7 +50,7 @@ struct BubbleChannelInviteView: View {
                                     
                                     Image(systemName: "checkmark.seal.fill")
                                         .font(.system(size: 14))
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(AppColors.primary)
                                 }
                                 
                                 // Follower count

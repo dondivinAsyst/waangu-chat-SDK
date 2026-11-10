@@ -235,6 +235,17 @@ struct ChatRoomScreen: View {
     /// Blank was the old answer, and it is never the right one: a contact
     /// shared with you is by definition someone you have not saved, so the
     /// number is the only thing that identifies them until you do.
+    /// A call button in the header: a filled glyph in the app blue on a soft blue
+    /// disc, 36 pt so it is an easy target.
+    private func headerCallIcon(_ symbol: String) -> some View {
+        Image(systemName: symbol)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(AppColors.primary)
+            .frame(width: 36, height: 36)
+            .background(AppColors.primary.opacity(0.10), in: Circle())
+            .contentShape(Circle())
+    }
+
     private var headerDisplayName: String {
         ChatDisplayName.text(
             name: user.name,
@@ -362,9 +373,15 @@ struct ChatRoomScreen: View {
     @available(iOS 17.0, *)
     private var mainChatView: some View {
         VStack(spacing: 0) {
-            chatHeaderBar
             messageListWithModifiers
         }
+        // The system navigation bar, as the channel room has it: on iOS 26 it
+        // draws the liquid-glass back and action buttons itself. The back button
+        // stays ours, because leaving the room also cancels an edit and drops the
+        // cached room.
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar { chatToolbar }
         .toolbar(.hidden, for: .tabBar)
         .chatAppearanceSheet(isPresented: $viewModel.showPhotoPicker, onDismiss: {
             guard let entry = pendingFinanceSelection else { return }
@@ -1148,7 +1165,7 @@ extension ChatRoomScreen {
                     
                 }else {
                     if !conversationType.isGroup {
-                        CircularProfileImageView(user.avatar ?? "", size: .xSmall)
+                        CircularProfileImageView(user.avatar ?? "", size: .xSmall, name: headerDisplayName)
                             .foregroundStyle(.secondary)
                     }else{
                         HStack{
@@ -1206,10 +1223,13 @@ extension ChatRoomScreen {
                     naviagationCoord.popToRoot()
                 } label: {
                     Image(systemName: "chevron.backward")
-                        .foregroundStyle(.primary)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(AppColors.primary)
+                        .frame(width: 32, height: 36)
+                        .contentShape(Rectangle())
                 }
 
-                HStack(alignment: .center, spacing: 8) {
+                HStack(alignment: .center, spacing: 10) {
                     if conversationType.isGroup {
                         // The group's picture, not a fixed icon: this branch used to
                         // draw `person.3.fill` unconditionally, so a group with an
@@ -1222,15 +1242,17 @@ extension ChatRoomScreen {
                             size: .xSmall
                         )
                     }else{
-                        CircularProfileImageView(user.avatar ?? "", size: .xSmall)
+                        CircularProfileImageView(user.avatar ?? "", size: .xSmall, name: headerDisplayName)
                             .foregroundStyle(.secondary)
+                            .overlay(Circle().strokeBorder(AppColors.primary.opacity(0.15), lineWidth: 1))
                     }
                    
 
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 6) {
                             Text(headerDisplayName)
-                                .font(.headline)
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(AppColors.textPrimary)
                                 .lineLimit(1)
 
                             LiveRealtimeHeartbeatIndicator(
@@ -1247,9 +1269,10 @@ extension ChatRoomScreen {
                         // used to fill the gap with an invented "last seen".
                         if let presence = headerPresenceText {
                             Text(presence)
-                                .font(.subheadline)
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
                         }
                     }
                 }
@@ -1308,11 +1331,9 @@ extension ChatRoomScreen {
                             )
                         }
                     } label: {
-                        Image(systemName: "video")
-                            .font(.system(size: 20))
-                            .foregroundStyle(.primary)
+                        headerCallIcon("video.fill")
                     }
-                    Spacer().frame(width: 8)
+                    Spacer().frame(width: 6)
                     Button {
                         hideKeyboard()
                         if conversationType.isGroup {
@@ -1335,9 +1356,7 @@ extension ChatRoomScreen {
                             )
                         }
                     } label: {
-                        Image(systemName: "phone")
-                            .font(.system(size: 20))
-                            .foregroundStyle(.primary)
+                        headerCallIcon("phone.fill")
                     }
                     Spacer().frame(width: 8)
                 }
@@ -1353,6 +1372,159 @@ extension ChatRoomScreen {
         .animation(.easeInOut(duration: 0.3), value: viewModel.messageAction)
     }
     
+    // MARK: - Navigation bar
+
+    @ToolbarContentBuilder
+    var chatToolbar: some ToolbarContent {
+        if viewModel.messageAction == .delete {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(common("cancel")) {
+                    viewModel.exitSelectionMode()
+                }
+            }
+            ToolbarItem(placement: .principal) {
+                Text(headerDisplayName)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(role: .destructive) {
+                    showDeleteConfirmation = true
+                } label: {
+                    Text("Delete")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.red)
+                }
+                .confirmationDialog(
+                    "Delete \(viewModel.selectedMessages?.count ?? 0) message\(viewModel.selectedMessages?.count ?? 0 > 1 ? "s" : "")?",
+                    isPresented: $showDeleteConfirmation,
+                    titleVisibility: .visible
+                ) {
+                    Button("Delete for Me", role: .destructive) {
+                        viewModel.deleteMessages(onlyMe: true)
+                    }
+                    if viewModel.selectedMessages?.allSatisfy({ $0.isSentByMe }) == true {
+                        Button("Delete for Everyone", role: .destructive) {
+                            viewModel.deleteMessages(onlyMe: false)
+                        }
+                    }
+                    Button("Cancel", role: .cancel) {}
+                }
+            }
+        } else {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    hideKeyboard()
+                    viewModel.cancelMessageEdit()
+                    naviagationCoord.clearChatRoomViewModelCache()
+                    naviagationCoord.popToRoot()
+                } label: {
+                    Image(systemName: "chevron.backward")
+                        .font(.system(size: 17, weight: .semibold))
+                }
+            }
+            ToolbarItem(placement: .principal) {
+                chatTitleView
+            }
+            if enabledModules.contains(.calls) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        startHeaderCall(video: true)
+                    } label: {
+                        Image(systemName: "video.fill")
+                    }
+                    Button {
+                        startHeaderCall(video: false)
+                    } label: {
+                        Image(systemName: "phone.fill")
+                    }
+                }
+            }
+        }
+    }
+
+    /// The avatar, the name with the realtime heart, and presence — the whole
+    /// thing opens the contact's or the group's info.
+    private var chatTitleView: some View {
+        HStack(spacing: 8) {
+            if conversationType.isGroup {
+                GroupAwareAvatarView(imageUrl: user.avatar, isGroup: true, size: .xxSmall)
+            } else {
+                CircularProfileImageView(user.avatar ?? "", size: .mini, name: headerDisplayName)
+            }
+
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 5) {
+                    Text(headerDisplayName)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppColors.textPrimary)
+                        .lineLimit(1)
+
+                    LiveRealtimeHeartbeatIndicator(
+                        monitor: viewModel.heartbeatMonitor
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        hideKeyboard()
+                        showRealtimeMonitor = true
+                    }
+                }
+
+                // Nothing at all when presence is unknown.
+                if let presence = headerPresenceText {
+                    Text(presence)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            hideKeyboard()
+            if conversationType.isGroup {
+                let route: ChatsTabRoute = .groupInfoView(
+                    discussionId: self.conversationId,
+                    groupName: user.name ?? ""
+                )
+                naviagationCoord.push(route)
+            } else {
+                let route: ChatsTabRoute = .profileView(
+                    contactId: user.idContact,
+                    discussionId: self.conversationId,
+                    fallbackPhone: user.phone,
+                    fallbackDisplayName: user.name.flatMap { $0.isEmpty ? nil : $0 },
+                    isBlocked: viewModel.currentReceiverUser?.isBlocked ?? false
+                )
+                naviagationCoord.push(route)
+            }
+        }
+    }
+
+    /// The header's call buttons: the same calls the old header placed.
+    private func startHeaderCall(video: Bool) {
+        hideKeyboard()
+        if conversationType.isGroup {
+            let invitees = groupCallInvitees
+            guard !invitees.isEmpty else { return }
+            VoipManager.shared.startGroupCall(
+                invitees,
+                hasVideo: video,
+                conversationId: self.conversationId,
+                groupName: user.name
+            )
+        } else {
+            VoipManager.shared.startOutgoingCall(
+                to: user.phone ?? "",
+                hasVideo: video,
+                name: user.name,
+                image: user.avatar,
+                conversationId: self.conversationId,
+                userId: user.userId
+            )
+        }
+    }
+
     private func t(_ key: String, args: [String] = []) -> String {
         viewModel.translationService?.resolve(key: key, module: ChatTranslationKeys.MODULE, args: args).value ?? key
     }

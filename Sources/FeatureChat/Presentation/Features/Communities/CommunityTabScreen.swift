@@ -131,38 +131,61 @@ struct CommunityTabScreen: View {
         }
     }
 
+    /// No community yet: what one is, and both ways in, so the tab is never a
+    /// dead end. The same picture band and badge as the create-community sheet.
     @ViewBuilder
     private func emptyState() -> some View {
-        VStack(spacing: 16) {
-            Image(systemName: "person.3.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(AppColors.primary.opacity(0.6))
+        VStack(spacing: 0) {
+            ChatHeroBand(symbol: "person.3", height: 170, cornerRadius: 26)
 
-            Text(t(ChatTranslationKeys.COMMUNITIES_EMPTY_TITLE))
-                .font(.title3.weight(.semibold))
-                .multilineTextAlignment(.center)
+            VStack(spacing: 10) {
+                Text(t(ChatTranslationKeys.COMMUNITIES_EMPTY_TITLE))
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(AppColors.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            Text(t(ChatTranslationKeys.COMMUNITIES_EMPTY_SUBTITLE))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            Button {
-                showCreateIntro = true
-            } label: {
-                Text(t(ChatTranslationKeys.COMMUNITIES_NEW))
-                    .font(.headline)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(AppColors.primary)
-                    .foregroundStyle(AppColors.white)
-                    .clipShape(Capsule())
+                Text(t(ChatTranslationKeys.COMMUNITIES_EMPTY_SUBTITLE))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .buttonStyle(.plain)
-            .padding(.top, 4)
+            .padding(.horizontal, 12)
+            .padding(.top, 22)
+            .staggeredAppear(1)
+
+            VStack(spacing: 10) {
+                Button {
+                    showCreateIntro = true
+                } label: {
+                    Label(t(ChatTranslationKeys.COMMUNITIES_NEW), systemImage: "plus")
+                        .font(.headline)
+                        .foregroundStyle(Color.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AppColors.primary, in: Capsule())
+                        .shadow(color: AppColors.primary.opacity(0.28), radius: 10, y: 5)
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    onNavigate(.joinCommunity)
+                } label: {
+                    Label(t(ChatTranslationKeys.COMMUNITIES_JOIN_WITH_CODE), systemImage: "key")
+                        .font(.headline)
+                        .foregroundStyle(AppColors.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .overlay(Capsule().strokeBorder(AppColors.primary.opacity(0.35), lineWidth: 1.5))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.top, 24)
+            .staggeredAppear(2)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
+        .padding(.vertical, 12)
     }
 
     /// Both ways in, where iOS puts them: the navigation bar, not stacked at the

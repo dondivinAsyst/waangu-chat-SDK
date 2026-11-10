@@ -28,10 +28,10 @@ struct IntroSheetPoint: Identifiable {
 
 /// Explains what a thing is before the user commits to making one.
 ///
-/// The mark at the top is an SF Symbol on a disc tinted with `AppColors.primary`
-/// — the app's own colour. Nothing here is traced from another product: the
-/// structure follows the convention users already know, the palette and the
-/// glyphs are ours.
+/// A picture band in the app blue carries the subject's badge; the title, the
+/// text and the points arrive one after another under it. The structure follows
+/// the convention users already know for these sheets; the palette (the app's
+/// blue only) and the glyphs are ours.
 @available(iOS 16.0, *)
 struct IntroSheetView: View {
 
@@ -64,41 +64,55 @@ struct IntroSheetView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            closeButton()
-
             ScrollView {
-                VStack(spacing: 24) {
-                    mark()
+                VStack(spacing: 0) {
+                    ChatHeroBand(symbol: symbol, height: 200)
 
-                    Text(title)
-                        .font(.title.weight(.bold))
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(AppColors.textPrimary)
-                        .padding(.horizontal, 24)
-
-                    if let body_ {
-                        Text(body_)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                    VStack(spacing: 14) {
+                        Text(title)
+                            .font(.title2.weight(.bold))
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
+                            .foregroundStyle(AppColors.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .staggeredAppear(1)
+
+                        if let body_ {
+                            Text(body_)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .staggeredAppear(2)
+                        }
                     }
+                    .padding(.horizontal, 28)
+                    .padding(.top, 24)
 
                     if !points.isEmpty {
-                        VStack(alignment: .leading, spacing: 20) {
-                            ForEach(points) { point in
+                        VStack(alignment: .leading, spacing: 18) {
+                            ForEach(Array(points.enumerated()), id: \.element.id) { index, point in
                                 pointRow(point)
+                                    .staggeredAppear(3 + index)
                             }
                         }
-                        .padding(.horizontal, 28)
+                        .padding(20)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                .fill(AppColors.primary.opacity(0.05))
+                        )
+                        .padding(.horizontal, 20)
+                        .padding(.top, 24)
                     }
                 }
-                .padding(.top, 8)
                 .padding(.bottom, 24)
             }
+            .scrollBounceBehavior(.basedOnSize)
 
             confirmButton()
+                .staggeredAppear(3 + points.count)
         }
+        .overlay(alignment: .topTrailing) { closeButton() }
         .background(AppColors.background)
     }
 
@@ -106,39 +120,22 @@ struct IntroSheetView: View {
 
     @ViewBuilder
     private func closeButton() -> some View {
-        HStack {
-            Spacer()
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(10)
-                    .background(Circle().fill(Color(.systemGray5)))
-            }
-            .accessibilityLabel(Text(verbatim: "Close"))
+        Button(action: onDismiss) {
+            Image(systemName: "xmark")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(AppColors.primary)
+                .frame(width: 34, height: 34)
+                .background(.ultraThinMaterial, in: Circle())
         }
+        .accessibilityLabel(Text(verbatim: "Close"))
         .padding(.horizontal, 16)
-        .padding(.top, 12)
-    }
-
-    @ViewBuilder
-    private func mark() -> some View {
-        Image(systemName: symbol)
-            .font(.system(size: 44, weight: .semibold))
-            .foregroundStyle(AppColors.primary)
-            .frame(width: 108, height: 108)
-            .background(
-                Circle().fill(AppColors.primary.opacity(0.12))
-            )
+        .padding(.top, 14)
     }
 
     @ViewBuilder
     private func pointRow(_ point: IntroSheetPoint) -> some View {
-        HStack(alignment: .top, spacing: 16) {
-            Image(systemName: point.symbol)
-                .font(.system(size: 18))
-                .foregroundStyle(AppColors.primary)
-                .frame(width: 26)
+        HStack(alignment: .top, spacing: 14) {
+            ChatSymbolBadge(symbol: point.symbol, size: 38)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(point.title)
@@ -150,6 +147,7 @@ struct IntroSheetView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -158,14 +156,15 @@ struct IntroSheetView: View {
         Button(action: onConfirm) {
             Text(confirmTitle)
                 .font(.headline)
+                .foregroundStyle(Color.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
-                .background(AppColors.primary)
-                .foregroundStyle(AppColors.white)
-                .clipShape(Capsule())
+                .padding(.vertical, 16)
+                .background(AppColors.primary, in: Capsule())
+                .shadow(color: AppColors.primary.opacity(0.30), radius: 12, y: 6)
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 20)
-        .padding(.bottom, 28)
+        .padding(.top, 8)
+        .padding(.bottom, 24)
     }
 }

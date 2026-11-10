@@ -92,7 +92,8 @@ extension ChatOutboxItem {
         let actionType = ChatOutboxItemActionType.sendMessage
         return ChatOutboxItem(
             actionType: actionType,
-            payload: (try? dto.toJSONData()) ?? Data(),
+            // The nonce belongs to one send attempt, not to the message: never stored.
+            payload: (try? dto.withoutNonce().toJSONData()) ?? Data(),
             idempotencyKey: "\(actionType.rawValue):\(dto.codeMessage)",
             conversationId: dto.conversationId
         )

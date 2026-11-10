@@ -92,7 +92,7 @@ struct ContactInfoView: View {
 
                     Text(formattedPhone)
                         .font(.body)
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppColors.primary)
                         .textSelection(.enabled)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -109,7 +109,8 @@ struct ContactInfoView: View {
                     draft: ContactDraft(
                         name: contact.name ?? "",
                         phone: contact.phone,
-                        isExisting: false
+                        isExisting: false,
+                        isOnWaangu: contact.isRegistered
                     ),
                     translationService: translationService
                 )
@@ -192,7 +193,7 @@ struct ContactInfoView: View {
     func optionRow(title: String) -> some View {
         HStack {
             Text(title)
-                .foregroundColor(.blue)
+                .foregroundColor(AppColors.primary)
             Spacer()
         }
         .padding()

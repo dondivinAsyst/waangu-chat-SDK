@@ -1,4 +1,5 @@
 import SwiftUI
+import WaanguSharedUI
 import Combine
 import WaanguCoreKit
 
@@ -155,7 +156,7 @@ struct PrivacyOptionPicker: View {
                         Spacer()
                         if selection == option {
                             Image(systemName: "checkmark")
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(AppColors.primary)
                         }
                     }
                 }

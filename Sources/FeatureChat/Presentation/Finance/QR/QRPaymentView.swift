@@ -214,7 +214,7 @@ struct QRPaymentView: View {
                     Text(resolved.counterparty.displayName).font(.body.weight(.medium))
                     if resolved.counterparty.verification.showsTrustBadge {
                         Image(systemName: "checkmark.seal.fill")
-                            .font(.caption).foregroundStyle(.blue)
+                            .font(.caption).foregroundStyle(AppColors.primary)
                     }
                 }
                 if resolved.requiresQuarantineWarning {

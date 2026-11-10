@@ -284,7 +284,7 @@ struct QRScannerView: View {
                             Text(qr.counterparty.displayName).font(.body.weight(.medium))
                             if qr.counterparty.verification.showsTrustBadge {
                                 Image(systemName: "checkmark.seal.fill")
-                                    .font(.caption).foregroundStyle(.blue)
+                                    .font(.caption).foregroundStyle(AppColors.primary)
                             }
                         }
                         if qr.counterparty.verification.warrantsWarning {

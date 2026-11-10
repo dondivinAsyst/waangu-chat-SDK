@@ -398,8 +398,8 @@ public struct MessageDataItem: Identifiable, Equatable  {
     var horizontalAlignment: HorizontalAlignment { direction == .received ? .leading : .trailing }
     var backgroundColor: Color {
         direction == .sent
-            ? Color("bubbleSent", bundle: .nativeUi)
-            : Color("bubbleReceived", bundle: .nativeUi)
+            ? Color("bubbleSent", bundle: .module)
+            : Color("bubbleReceived", bundle: .module)
     }
     var showGroupPartnerInfo: Bool { isGroupChat && direction == .received }
 

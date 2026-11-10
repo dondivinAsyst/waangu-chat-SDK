@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WaanguSharedUI
 import MapKit
 import WaanguCoreKit
 
@@ -252,7 +253,7 @@ struct LocationMapViewer: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(Color.blue)
+                    .background(AppColors.primary)
                     .cornerRadius(10)
                 }
                 
@@ -264,10 +265,10 @@ struct LocationMapViewer: View {
                         Text(t(ChatTranslationKeys.LOCATION_OPEN_IN_MAPS))
                     }
                     .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.blue)
+                    .foregroundColor(AppColors.primary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(Color.blue.opacity(0.1))
+                    .background(AppColors.primary.opacity(0.1))
                     .cornerRadius(10)
                 }
             }
@@ -293,7 +294,7 @@ struct LocationMapViewer: View {
                     HStack {
                         Image(systemName: "map.fill")
                             .font(.title2)
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppColors.primary)
                             .frame(width: 50)
                         
                         VStack(alignment: .leading) {

@@ -18,7 +18,7 @@ Reports go to a temporary folder, or to `--out`.
 You need read access to `github.com/dondivinAsyst/waangu-chat-SDK`.
 
 ```bash
-git clone --branch 0.2.7 git@github.com:dondivinAsyst/waangu-chat-SDK.git ~/tools/waangu-chat
+git clone --branch 0.2.8 git@github.com:dondivinAsyst/waangu-chat-SDK.git ~/tools/waangu-chat
 ```
 Use a **full** clone (no `--depth`): updates need the previous version's tag. If port 22 is blocked, use `ssh://git@ssh.github.com:443/dondivinAsyst/waangu-chat-SDK.git`.
 

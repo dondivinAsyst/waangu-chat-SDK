@@ -22,7 +22,7 @@ struct PaymentCardView: View {
     @Environment(\.financeCardDirection) private var direction
 
     var body: some View {
-        FinancialCardChrome(payload: payload, title: title) {
+        FinancialCardChrome(payload: payload, title: title, symbol: directionSymbol) {
             VStack(alignment: .leading, spacing: 6) {
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -52,6 +52,15 @@ struct PaymentCardView: View {
                         .lineLimit(3)
                 }
             }
+        }
+    }
+
+    /// Which way the money went, shown as a small badge before the title.
+    private var directionSymbol: String? {
+        switch direction {
+        case .sent?:     return "arrow.up.right"
+        case .received?: return "arrow.down.left"
+        case nil:        return nil
         }
     }
 

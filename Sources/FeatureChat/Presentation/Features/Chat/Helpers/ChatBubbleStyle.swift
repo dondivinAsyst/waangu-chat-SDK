@@ -4,8 +4,8 @@ import WaanguSharedUI
 enum ChatBubbleStyle {
     static func background(for direction: MessageDirection) -> Color {
         direction == .sent
-            ? Color("bubbleSent", bundle: .nativeUi)
-            : Color("bubbleReceived", bundle: .nativeUi)
+            ? Color("bubbleSent", bundle: .module)
+            : Color("bubbleReceived", bundle: .module)
     }
 
     static func foreground(for colorScheme: ColorScheme) -> Color {

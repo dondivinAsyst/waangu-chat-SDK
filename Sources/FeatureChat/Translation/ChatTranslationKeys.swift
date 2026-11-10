@@ -445,6 +445,7 @@ public struct ChatTranslationKeys {
     public static let COMMUNITIES_NEW_GROUP            = "communities_new_group"
     public static let COMMUNITIES_GROUP_NAME           = "communities_group_name"
     public static let COMMUNITIES_JOIN_WITH_CODE       = "communities_join_with_code"
+    public static let COMMUNITIES_JOIN_CODE_HINT       = "communities_join_code_hint"
     public static let COMMUNITIES_INVITE_CODE          = "communities_invite_code"
     public static let COMMUNITIES_JOIN                 = "communities_join"
     public static let COMMUNITIES_ANNOUNCEMENTS        = "communities_announcements"

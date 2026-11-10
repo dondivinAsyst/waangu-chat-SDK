@@ -9,6 +9,7 @@
 import SwiftUI
 import Combine
 import WaanguCoreKit
+import WaanguSharedUI
 
 @available(iOS 16.0, *)
 public struct ChatCoordinatorView: View {
@@ -210,6 +211,10 @@ public struct ChatCoordinatorView: View {
                         }
                         .tag(Tab.settings)
                 }
+                // The app's primary, not the host's accent (iOS blue when the host
+                // sets none): the selected tab and every control left on the
+                // default tint inside chat.
+                .tint(AppColors.primary)
                 .id(localeToken)
             }
             .animation(

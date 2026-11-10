@@ -31,7 +31,7 @@ struct ReplyPreviewView: View {
                 // Sender name
                 Text((repliedMessage?.direction == .sent ? common("you") : repliedMessage?.senderName) ?? "")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(repliedMessage?.direction == .sent ? .green : .blue)
+                    .foregroundColor(repliedMessage?.direction == .sent ? .green : AppColors.primary)
                     .lineLimit(1)
                     .truncationMode(.tail)
 
@@ -68,7 +68,7 @@ struct ReplyPreviewView: View {
         .padding(.leading, 12)
         .overlay(alignment: .leading) {
             RoundedRectangle(cornerRadius: 2)
-                .fill(repliedMessage?.direction == .sent ? Color.blue : Color.green)
+                .fill(repliedMessage?.direction == .sent ? AppColors.primary : Color.green)
                 .frame(width: 4)
         }
         .padding(.vertical, 8)

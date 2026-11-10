@@ -10,12 +10,12 @@ import SwiftUI
 struct BubleTailView: View {
     let direction:MessageDirection
     private var backgroundColor: Color {
-        return direction == .sent ?  Color("bubbleSent", bundle: .nativeUi) : Color("bubbleReceived", bundle: .nativeUi)
+        return direction == .sent ?  Color("bubbleSent", bundle: .module) : Color("bubbleReceived", bundle: .module)
     }
     
     var body: some View {
         VStack{
-            Image.custom((direction == .sent ? "outgoingTail" : "incomingTail"))
+            Image(direction == .sent ? "outgoingTail" : "incomingTail", bundle: .module)
                 .renderingMode(.template)
                 .resizable()
                 .frame(width: 10, height: 10)

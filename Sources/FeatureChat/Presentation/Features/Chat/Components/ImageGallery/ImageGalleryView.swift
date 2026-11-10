@@ -1,4 +1,5 @@
 import SwiftUI
+import WaanguSharedUI
 import WaanguCoreKit
 
 struct CachedMediaItem: Identifiable, Equatable {
@@ -224,7 +225,7 @@ struct ImageGallery: View {
                     HStack(spacing: 12) {
                         Image(systemName: docIcon(for: msg.message.mimeType))
                             .font(.title2)
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(AppColors.primary)
                             .frame(width: 40, height: 40)
                             .background(Color(.systemGray6))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -399,7 +400,7 @@ private struct LinkRowView: View {
 
                 Text(url.absoluteString)
                     .font(.caption)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(AppColors.primary)
                     .lineLimit(1)
 
                 Text(displayTime)

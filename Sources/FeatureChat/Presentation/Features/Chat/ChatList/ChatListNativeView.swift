@@ -1057,7 +1057,7 @@ struct DiscussionChat: View , Equatable {
                     Button(action : onShowMoreAction) {
                         Label(t(ChatTranslationKeys.ACTION_MORE), systemImage: "ellipsis")
                     }
-                    .tint(Color(.systemBlue))
+                    .tint(AppColors.primary)
                 }
             }
         
@@ -1093,26 +1093,26 @@ struct MessageStatusIcon: View {
                          .foregroundColor(.gray)
                          .font(.system(size: 13))
                 case .SENT:
-                        Image.custom("tick")
+                        Image("tick", bundle: .module)
                             .resizable()
                             .renderingMode(.template)
                             .frame(width: 22, height: 22)
                             .foregroundColor(Color(.gray))
                        
                  case .SEEN:
-                        Image.custom("doubleStick")
+                        Image("doubleStick", bundle: .module)
                             .resizable()
                             .renderingMode(.template)
                             .frame(width: 22, height: 22)
-                            .foregroundColor(Color(.systemBlue))
+                            .foregroundColor(AppColors.primary)
                  case .UNSEEN:
-                        Image.custom("tick")
+                        Image("tick", bundle: .module)
                             .resizable()
                             .renderingMode(.template)
                             .frame(width: 22, height: 22)
                             .foregroundColor(Color(.gray))
                  case .DELIVERED:
-                        Image.custom("doubleStick")
+                        Image("doubleStick", bundle: .module)
                             .resizable()
                             .renderingMode(.template)
                             .frame(width: 22, height: 22)
@@ -1122,11 +1122,11 @@ struct MessageStatusIcon: View {
                             .foregroundColor(.red)
                             .font(.system(size: 14))
                  case .MODIFY:
-                        Image.custom("doubleStick")
+                        Image("doubleStick", bundle: .module)
                             .resizable()
                             .renderingMode(.template)
                             .frame(width: 22, height: 22)
-                            .foregroundColor(Color(.systemBlue))
+                            .foregroundColor(AppColors.primary)
                  }
         
     }
@@ -1376,8 +1376,8 @@ struct PendingGroupRow: View {
                             .font(.caption2)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(Color.blue.opacity(0.15))
-                            .foregroundStyle(.blue)
+                            .background(AppColors.primary.opacity(0.15))
+                            .foregroundStyle(AppColors.primary)
                             .clipShape(Capsule())
                     } else if group.syncStatus == .failed {
                         Text(t(ChatTranslationKeys.GROUP_SYNC_FAILED))

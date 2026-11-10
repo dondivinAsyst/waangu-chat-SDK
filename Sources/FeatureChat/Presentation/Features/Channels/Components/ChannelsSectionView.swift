@@ -30,6 +30,8 @@ struct ChannelsSectionView: View {
 
             if viewModel.isLoading && viewModel.followed.isEmpty {
                 loadingRow()
+            } else if let loadError = viewModel.loadError, viewModel.followed.isEmpty {
+                loadErrorRow(loadError)
             } else if viewModel.followed.isEmpty {
                 emptyState()
             } else {
@@ -71,8 +73,7 @@ struct ChannelsSectionView: View {
     private func header() -> some View {
         HStack {
             Text(t(ChatTranslationKeys.STORIES_CHANNELS))
-                .bold()
-                .font(.title)
+                .font(.title2.weight(.bold))
                 .foregroundStyle(AppColors.textPrimary)
 
             Spacer()
@@ -101,6 +102,34 @@ struct ChannelsSectionView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
+    }
+
+    /// The list could not be read: say so where the list would be, with a way
+    /// to try again — not a modal over the whole tab.
+    private func loadErrorRow(_ message: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "exclamationmark.icloud")
+                .font(.system(size: 20))
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 8)
+
+            Button(common("retry")) {
+                Task { await viewModel.load() }
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(AppColors.primary)
+            .buttonStyle(.borderless)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .transition(.opacity)
     }
 
     @ViewBuilder

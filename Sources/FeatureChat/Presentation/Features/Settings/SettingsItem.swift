@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WaanguSharedUI
 
 struct SettingsItem {
     let imageName: String
@@ -124,7 +125,7 @@ extension SettingsItem {
 extension SettingsItem {
     static let media = SettingsItem(
         imageName: "photo",
-        backgroundColor: .blue,
+        backgroundColor: AppColors.primary,
         titleKey: ChatTranslationKeys.CONTACT_INFO_MEDIA_LINKS_DOCS
     )
     
@@ -148,19 +149,19 @@ extension SettingsItem {
     
     static let encryption = SettingsItem(
         imageName: "lock.fill",
-        backgroundColor: .blue,
+        backgroundColor: AppColors.primary,
         titleKey: ChatTranslationKeys.GROUP_INFO_ENCRYPTION
     )
     
     static let disappearingMessages = SettingsItem(
         imageName: "timer",
-        backgroundColor: .blue,
+        backgroundColor: AppColors.primary,
         titleKey: ChatTranslationKeys.CONTACT_INFO_DISAPPEARING
     )
     
     static let lockChat = SettingsItem(
         imageName: "lock.doc.fill",
-        backgroundColor: .blue,
+        backgroundColor: AppColors.primary,
         titleKey: ChatTranslationKeys.GROUP_INFO_LOCK_CHAT
     )
     

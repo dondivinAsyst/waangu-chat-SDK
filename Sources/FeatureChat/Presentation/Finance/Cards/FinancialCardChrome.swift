@@ -24,6 +24,9 @@ struct FinancialCardChrome<Content: View>: View {
 
     let payload: FinancialCardPayload
     let title: String
+    /// A small badge before the title (the money's direction). `nil` keeps the
+    /// title alone, as every other card has it.
+    var symbol: String? = nil
     @ViewBuilder let content: () -> Content
 
     private var presentation: FinancialCardPresentation { payload.presentation }
@@ -44,13 +47,13 @@ struct FinancialCardChrome<Content: View>: View {
             // Titre et statut passent l'un sous l'autre quand le texte est très
             // grand : côte à côte, le libellé traduit était tronqué.
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 6) {
-                    Text(title).font(.subheadline.weight(.semibold))
+                HStack(spacing: 8) {
+                    titleLabel
                     Spacer(minLength: 8)
                     presentation.badge
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(.subheadline.weight(.semibold))
+                    titleLabel
                     presentation.badge
                 }
             }
@@ -72,9 +75,10 @@ struct FinancialCardChrome<Content: View>: View {
             // Bandeau de fraîcheur — §7 de la spec. Hors ligne, l'utilisateur doit
             // savoir qu'il regarde un état daté plutôt qu'un état courant.
             if let stamp = payload.freshnessLabel {
-                Text(stamp)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                Label(stamp, systemImage: "clock.arrow.circlepath")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .labelStyle(.titleAndIcon)
             }
         }
         .padding(4)
@@ -96,6 +100,20 @@ struct FinancialCardChrome<Content: View>: View {
         .accessibilityElement(children: .combine)
         // Ordre du chapitre 81 : nature → montant et devise → participant → statut.
         .accessibilityLabel(accessibilitySummary)
+    }
+
+    @ViewBuilder
+    private var titleLabel: some View {
+        HStack(spacing: 6) {
+            if let symbol {
+                // A plain glyph, no tile behind it.
+                Image(systemName: symbol)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(AppColors.primary)
+                    .accessibilityHidden(true)
+            }
+            Text(title).font(.subheadline.weight(.semibold))
+        }
     }
 }
 

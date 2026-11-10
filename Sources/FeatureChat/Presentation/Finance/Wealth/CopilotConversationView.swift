@@ -665,7 +665,7 @@ struct CopilotConversationView: View {
     @ViewBuilder
     private var roomBackground: some View {
         if isPushed {
-            Image("chatBackground", bundle: .nativeUi)
+            Image("chatBackground", bundle: .module)
                 .resizable()
                 .ignoresSafeArea()
         } else {

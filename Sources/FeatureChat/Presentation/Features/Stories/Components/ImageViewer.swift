@@ -150,7 +150,7 @@ struct ImageViewComponent: View {
                     }
                    
                 }else{
-                    Image.custom("waangu")
+                    Image("waangu", bundle: .module)
                         .resizable()
                         .aspectRatio(contentMode: contentMode)
                         .frame(width:isMyStatusEmpty ? width + 30 : width, height: isMyStatusEmpty ? height + 30 : height)

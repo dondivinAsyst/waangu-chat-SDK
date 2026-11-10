@@ -72,7 +72,7 @@ struct ChannelRoomView: View {
             // The chat wallpaper, not a flat fill: a channel is read in the
             // same place conversations are, and MessageListView draws exactly
             // this behind every other room.
-            Image("chatBackground", bundle: .nativeUi)
+            Image("chatBackground", bundle: .module)
                 .resizable()
                 .ignoresSafeArea()
 

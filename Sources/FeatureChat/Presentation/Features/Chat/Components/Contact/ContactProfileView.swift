@@ -109,34 +109,24 @@ struct ContactProfileView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // MARK: - Custom Navigation Bar
-            contactInfoHeader
-
             List {
                 // MARK: - HEADER (Avatar + Name + Status)
                 Section {
-                    VStack(spacing: 8) {
-                        Circle()
-                            .fill(Color.black)
-                            .frame(width: 100, height: 100)
-                            .overlay {
-                                Group {
-                                    if let imageUrl = viewModel.user?.avatar {
-                                        CircularProfileImageView(imageUrl, size: .xLarge)
-                                            .foregroundColor(.black.opacity(0.5))
-                                    } else {
-                                        Image(systemName: "person.fill")
-                                            .resizable()
-                                            .scaledToFit()
-                                            .foregroundColor(.white)
-                                            .padding(20)
-                                    }
-                                }
-                            }
+                    VStack(spacing: 10) {
+                        // The photo, or the initials on the app blue — never a grey silhouette.
+                        CircularProfileImageView(
+                            viewModel.user?.avatar ?? "",
+                            size: .custom(112),
+                            name: viewModel.displayTitle
+                        )
+                        .overlay(Circle().strokeBorder(Color.white.opacity(0.9), lineWidth: 3))
+                        .shadow(color: AppColors.primary.opacity(0.22), radius: 14, y: 6)
+                        .staggeredAppear(0)
 
                         Text(viewModel.displayTitle)
-                            .font(.title2)
-                            .fontWeight(.semibold)
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(AppColors.textPrimary)
+                            .multilineTextAlignment(.center)
                             .background(
                                 GeometryReader { geo in
                                     Color.clear
@@ -150,7 +140,8 @@ struct ContactProfileView: View {
                         if let about = viewModel.user?.description.trimmingCharacters(in: .whitespacesAndNewlines), !about.isEmpty {
                             Text(about)
                                 .font(.subheadline)
-                                .foregroundColor(.gray)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
                                 .background(
                                     GeometryReader { geo in
                                         Color.clear
@@ -175,6 +166,7 @@ struct ContactProfileView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
+                    .padding(.top, 6)
                 }
                 .listRowBackground(Color.clear)
 
@@ -183,15 +175,20 @@ struct ContactProfileView: View {
 
                 // MARK: - PHONE NUMBER
                 Section {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(t(ChatTranslationKeys.CONTACT_INFO_MOBILE))
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        Text(viewModel.user?.phone ?? "")
-                            .font(.body)
-                            .foregroundColor(.blue)
+                    HStack(spacing: 14) {
+                        ChatSymbolBadge(symbol: "phone", size: 30)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(t(ChatTranslationKeys.CONTACT_INFO_MOBILE))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(viewModel.user?.phone ?? "")
+                                .font(.body.weight(.medium))
+                                .monospacedDigit()
+                                .foregroundStyle(AppColors.primary)
+                                .textSelection(.enabled)
+                        }
                     }
+                    .padding(.vertical, 2)
                 }
 
                 Section {
@@ -206,10 +203,9 @@ struct ContactProfileView: View {
 
                 // MARK: - SETTINGS
                 Section {
-                    BrandedToggle(
-                        t(ChatTranslationKeys.CONTACT_INFO_MUTE_NOTIFICATIONS),
-                        systemImage: "bell.slash",
-                        isOn: Binding(
+                    HStack(spacing: 14) {
+                        ChatSymbolBadge(symbol: "bell.slash", size: 30)
+                        Toggle(t(ChatTranslationKeys.CONTACT_INFO_MUTE_NOTIFICATIONS), isOn: Binding(
                             get: { viewModel.isMuted },
                             set: { newValue in
                                 Task { @MainActor in
@@ -217,8 +213,9 @@ struct ContactProfileView: View {
                                     viewModel.reloadMuteFromStore()
                                 }
                             }
-                        )
-                    )
+                        ))
+                        .tint(AppColors.primary)
+                    }
                     IconTitleRow(
                         icon: "paintpalette",
                         title: t(ChatTranslationKeys.CONTACT_INFO_CHAT_APPEARANCE),
@@ -276,6 +273,7 @@ struct ContactProfileView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .listSectionSpacing(.compact)
 
             // MARK: - Scroll listener
             .onPreferenceChange(ViewFrameKey.self) { frames in
@@ -299,6 +297,25 @@ struct ContactProfileView: View {
                     }
                 }
             }
+        }
+        // The system navigation bar, as channel info has it: on iOS 26 it draws the
+        // liquid-glass back and Edit buttons itself.
+        .navigationTitle(t(ChatTranslationKeys.CONTACT_INFO_TITLE))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if viewModel.user != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(t(ChatTranslationKeys.CONTACT_INFO_EDIT)) {
+                        showEditContact = true
+                    }
+                }
+            }
+        }
+        .chatAppearanceSheet(isPresented: $showEditContact) {
+            NewContactView(
+                draft: viewModel.user.map(ContactDraft.init(user:)),
+                translationService: chatRoomVM.translationService
+            )
         }
         .onAppear {
             appearanceStore.reloadFromPersistence()
@@ -329,7 +346,7 @@ struct ContactProfileView: View {
                                 Spacer()
                                 if viewModel.disappearingDuration == option {
                                     Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
+                                        .foregroundStyle(AppColors.primary)
                                 }
                             }
                         }
@@ -444,7 +461,10 @@ struct ContactProfileView: View {
                 navigationCoord.pop()
             } label: {
                 Image(systemName: "chevron.backward")
-                    .foregroundColor(.blue)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(AppColors.primary)
+                    .frame(width: 32, height: 36)
+                    .contentShape(Rectangle())
             }
 
             Spacer()
@@ -481,6 +501,8 @@ struct ContactProfileView: View {
                 Button(t(ChatTranslationKeys.CONTACT_INFO_EDIT)) {
                     showEditContact = true
                 }
+                .font(.body.weight(.semibold))
+                .tint(AppColors.primary)
                 .chatAppearanceSheet(isPresented: $showEditContact) {
                     NewContactView(
                         draft: viewModel.user.map(ContactDraft.init(user:)),
@@ -491,10 +513,14 @@ struct ContactProfileView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
+        // The same tint the wash under it starts with, so bar and wash read as
+        // one surface instead of meeting on a line.
         .background {
-            Rectangle()
-                .fill(.regularMaterial)
-                .ignoresSafeArea(edges: .top)
+            ZStack {
+                Color(.systemGroupedBackground)
+                AppColors.primary.opacity(0.14)
+            }
+            .ignoresSafeArea(edges: .top)
         }
     }
     
@@ -512,7 +538,6 @@ struct ContactProfileView: View {
                             userId: viewModel.user?.userId
                         )
                     }
-                    Divider()
                     quickActionButton(icon: "video", title: t(ChatTranslationKeys.CONTACT_INFO_VIDEO)) {
                         VoipManager.shared.startOutgoingCall(
                             to: viewModel.user?.phone ?? "",
@@ -533,9 +558,10 @@ struct ContactProfileView: View {
 //                }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 2)
+            .staggeredAppear(1)
         }
-        .listRowInsets(.init(top: 10, leading: 12, bottom: 10, trailing: 12))
+        .listRowInsets(.init(top: 4, leading: 0, bottom: 4, trailing: 0))
+        .listRowBackground(Color.clear)
     }
     
     // MARK: - Action Button Component
@@ -563,17 +589,19 @@ struct ContactProfileView: View {
     private func quickActionButton(icon: String, title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(AppColors.primary)
+                ChatSymbolBadge(symbol: icon, size: 40)
                 Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(AppColors.textPrimary)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.vertical, 14)
+            .background(Color(.secondarySystemGroupedBackground),
+                        in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(AppColors.primary.opacity(0.08), lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
     }
@@ -604,6 +632,8 @@ struct ViewFrameKey: PreferenceKey {
 }
 
 
+/// A settings-style row: a solid blue badge (red for a destructive action), the
+/// title with an optional subtitle, an optional count, and a chevron.
 struct IconTitleRow: View {
     let icon: String
     let title: String
@@ -611,46 +641,45 @@ struct IconTitleRow: View {
     var isDestructive = false
     var mediaCount : Int = 0
     var body: some View {
-        HStack {
-//            if !isDestructive {
+        HStack(spacing: 14) {
+            if isDestructive {
                 Image(systemName: icon)
-                   .foregroundColor(isDestructive ? .red : .secondary)
-                    .font(.system(size: 24, weight: .regular))
-//            }
-           
-                 
-            VStack(alignment: .leading) {
+                    .font(.system(size: 14, weight: .semibold))
+                    .symbolVariant(.fill)
+                    .foregroundStyle(Color.red)
+                    .frame(width: 30, height: 30)
+                    .background(Color.red.opacity(0.12),
+                                in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .accessibilityHidden(true)
+            } else {
+                ChatSymbolBadge(symbol: icon, size: 30)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .foregroundColor(isDestructive ? .red : .primary)
+                    .foregroundStyle(isDestructive ? Color.red : AppColors.textPrimary)
                 if let descr = subtitle {
                     Text(descr)
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
-               
-                   
             }
             if !isDestructive {
-                HStack {
+                HStack(spacing: 6) {
                     if mediaCount > 0 {
                         Text("\(mediaCount)")
-                            .font(.headline)
-                            .foregroundColor(.primary)
+                            .font(.subheadline.weight(.semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
                     }
                     Image(systemName: "chevron.right")
-                        .foregroundColor(.gray)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
                 }
-               
             }
-           
          }
+        .padding(.vertical, 2)
         .contentShape(Rectangle())
     }
 }
-
-
-
-
-
-

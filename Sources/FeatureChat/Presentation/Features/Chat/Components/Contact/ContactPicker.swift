@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WaanguSharedUI
 import WaanguCoreKit
 
 
@@ -92,7 +93,7 @@ struct ContactPicker: View {
                         let contactItems = buildContactItems()
                         onSendContacts?(contactItems)
                     }) {
-                        Text(t(ChatTranslationKeys.CONTACT_PICKER_SEND)).font(.headline).bold().foregroundColor(.blue)
+                        Text(t(ChatTranslationKeys.CONTACT_PICKER_SEND)).font(.headline).bold().foregroundColor(AppColors.primary)
                     }
                     .opacity(selectedContacts.isEmpty ? 0 : 1)
                     .disabled(selectedContacts.isEmpty)
@@ -148,7 +149,7 @@ struct CheckboxBounceView: View {
     
     var body: some View {
         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-            .foregroundColor(.blue)
+            .foregroundColor(AppColors.primary)
             .font(.title2)
             .scaleEffect(currentScale)
             .offset(x: isEditMode ? 0 : -50)

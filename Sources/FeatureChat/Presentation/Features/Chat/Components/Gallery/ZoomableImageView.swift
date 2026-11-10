@@ -7,6 +7,7 @@
 //  Created by Asyst on 6/19/25.
 //
 import SwiftUI
+import WaanguSharedUI
 import SDWebImageSwiftUI
 import Photos
 import WaanguCoreKit
@@ -87,7 +88,7 @@ struct ZoomableImageOverlay: View {
                             Button(action: onSelect) {
                                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                                     .font(.title2)
-                                    .foregroundColor(isSelected ? .blue : .white)
+                                    .foregroundColor(isSelected ? AppColors.primary : .white)
                                     .padding()
                                     .background(Circle().fill(Color.black.opacity(0.5)))
                             }

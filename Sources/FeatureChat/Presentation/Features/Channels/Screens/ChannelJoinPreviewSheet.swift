@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import WaanguSharedUI
 
 struct ChannelJoinPreviewSheet: View {
     
@@ -69,21 +70,21 @@ struct ChannelJoinPreviewSheet: View {
                         if let imageUrl = channel.image, !imageUrl.isEmpty {
                             // Async image would go here
                             Circle()
-                                .fill(Color.blue.opacity(0.2))
+                                .fill(AppColors.primary.opacity(0.2))
                                 .frame(width: 100, height: 100)
                                 .overlay(
                                     Image(systemName: "number")
                                         .font(.system(size: 40))
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(AppColors.primary)
                                 )
                         } else {
                             Circle()
-                                .fill(Color.blue.opacity(0.2))
+                                .fill(AppColors.primary.opacity(0.2))
                                 .frame(width: 100, height: 100)
                                 .overlay(
                                     Image(systemName: "number")
                                         .font(.system(size: 40))
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(AppColors.primary)
                                 )
                         }
                         
@@ -178,7 +179,7 @@ struct ChannelJoinPreviewSheet: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(viewModel.canJoin ? Color.blue : Color.gray)
+                .background(viewModel.canJoin ? AppColors.primary : Color.gray)
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }
@@ -214,7 +215,7 @@ struct ChannelJoinPreviewSheet: View {
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue)
+                    .background(AppColors.primary)
                     .foregroundColor(.white)
                     .cornerRadius(12)
             }
@@ -253,7 +254,7 @@ struct ChannelJoinPreviewSheet: View {
                 .fontWeight(.semibold)
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.blue)
+                .background(AppColors.primary)
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }
@@ -284,7 +285,7 @@ struct ChannelJoinPreviewSheet: View {
     private func infoRow(icon: String, title: String, description: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(.blue)
+                .foregroundColor(AppColors.primary)
                 .frame(width: 24)
             
             VStack(alignment: .leading, spacing: 4) {

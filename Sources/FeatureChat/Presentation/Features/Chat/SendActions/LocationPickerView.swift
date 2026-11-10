@@ -9,6 +9,7 @@
 
 
 import SwiftUI
+import WaanguSharedUI
 import MapKit
 import WaanguCoreKit
 
@@ -216,7 +217,7 @@ extension LocationPickerView {
                        Image(systemName: showMapType ? "info.circle.fill" : "info.circle")
                            .padding()
                            .background(Color.white)
-                           .foregroundColor(.blue)
+                           .foregroundColor(AppColors.primary)
                    }
                    .buttonStyle(PlainButtonStyle())
                    Divider().frame(width: 1,).foregroundColor(.gray)
@@ -226,7 +227,7 @@ extension LocationPickerView {
                        Image(systemName: "location.fill")
                            .padding()
                            .background(Color.white)
-                           .foregroundColor(.blue)
+                           .foregroundColor(AppColors.primary)
 
                    }.buttonStyle(PlainButtonStyle())
                }

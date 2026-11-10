@@ -29,6 +29,11 @@ public struct OutboundMessageDTO: Codable, Sendable, Equatable {
     public let isMessageSystem: Bool?
     public let tenantId: String?
     public let country: String?
+    /// A new lowercase UUID on **every** send attempt, retries included, while
+    /// `codeMessage` stays the same. Set only by `withFreshNonce()` right before
+    /// a publish, and never stored: the outbox saves the message without it.
+    /// `nil` (and absent from the JSON) everywhere else.
+    public var nonce: String?
 
     public init(
         sessionId: String,
@@ -49,7 +54,8 @@ public struct OutboundMessageDTO: Codable, Sendable, Equatable {
         transactionId: String? = nil,
         isMessageSystem: Bool? = nil,
         tenantId: String? = nil,
-        country: String? = nil
+        country: String? = nil,
+        nonce: String? = nil
     ) {
         self.sessionId = sessionId
         self.senderId = senderId
@@ -70,6 +76,22 @@ public struct OutboundMessageDTO: Codable, Sendable, Equatable {
         self.isMessageSystem = isMessageSystem
         self.tenantId = tenantId
         self.country = country
+        self.nonce = nonce
+    }
+
+    /// This message for one send attempt: the same message, with a new nonce.
+    /// Call it right before each `publish` — first send and every retry.
+    public func withFreshNonce() -> OutboundMessageDTO {
+        var attempt = self
+        attempt.nonce = UUID().uuidString.lowercased()
+        return attempt
+    }
+
+    /// This message as the outbox stores it: without a nonce.
+    public func withoutNonce() -> OutboundMessageDTO {
+        var stored = self
+        stored.nonce = nil
+        return stored
     }
 
     /// Backward-compatible alias used by outbox / flush handlers.

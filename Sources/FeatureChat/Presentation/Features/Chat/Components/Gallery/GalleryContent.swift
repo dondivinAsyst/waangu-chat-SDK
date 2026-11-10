@@ -5,6 +5,7 @@
 //  Created by Asyst on 7/5/25.
 //
 import SwiftUI
+import WaanguSharedUI
 import Photos
 import SDWebImageSwiftUI
 import WaanguCoreKit
@@ -160,7 +161,7 @@ struct GalleryView: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
-                .background(Color.blue)
+                .background(AppColors.primary)
                 .clipShape(Capsule())
                 .scaleEffect(viewModel.selectedMedia.count > 0 ? 1 : 0.8)
                 .opacity(viewModel.selectedMedia.count > 0 ? 1 : 0)
@@ -299,7 +300,7 @@ struct GalleryMediaCell: View {
             ZStack {
                 Circle()
                     .strokeBorder(Color.white, lineWidth: 2)
-                    .background(Circle().fill(isSelected ? Color.blue : Color.black.opacity(0.5)))
+                    .background(Circle().fill(isSelected ? AppColors.primary : Color.black.opacity(0.5)))
                     .frame(width: 24, height: 24)
 
                 if isSelected {

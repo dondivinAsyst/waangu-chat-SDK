@@ -64,10 +64,13 @@ final class RecordingChatOutbox: ChatOutboxEnqueuing, @unchecked Sendable {
 final class RecordingRealtimeClient: RealtimeClientProtocol, @unchecked Sendable {
     private let lock = NSLock()
     private var _publishedPaths: [String] = []
+    private var _publishedBodies: [Data] = []
     private var _connectCount = 0
     private var _disconnects: [DisconnectReason] = []
 
     var publishedPaths: [String] { lock.withLock { _publishedPaths } }
+    /// Each published payload, JSON-encoded as it would go on the wire.
+    var publishedBodies: [Data] { lock.withLock { _publishedBodies } }
     var connectCount: Int { lock.withLock { _connectCount } }
     var disconnects: [DisconnectReason] { lock.withLock { _disconnects } }
 
@@ -103,7 +106,11 @@ final class RecordingRealtimeClient: RealtimeClientProtocol, @unchecked Sendable
         qos: RealtimeQoS,
         priority: MessagePriority
     ) async throws {
-        lock.withLock { _publishedPaths.append(topic.path) }
+        let body = (try? JSONEncoder().encode(payload)) ?? Data()
+        lock.withLock {
+            _publishedPaths.append(topic.path)
+            _publishedBodies.append(body)
+        }
     }
 
     func request<Request: Encodable & Sendable, Response: Decodable & Sendable>(

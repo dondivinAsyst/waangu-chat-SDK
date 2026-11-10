@@ -2,7 +2,7 @@
 
 **Waangu chat (`FeatureChat`) and the kits it depends on, as one Swift package.**
 
-![version](https://img.shields.io/badge/version-0.2.7-blue) ![platform](https://img.shields.io/badge/platform-iOS%2017%2B-lightgrey) ![swift](https://img.shields.io/badge/swift--tools-5.9-orange) ![repo](https://img.shields.io/badge/repo-private-red)
+![version](https://img.shields.io/badge/version-0.2.8-blue) ![platform](https://img.shields.io/badge/platform-iOS%2017%2B-lightgrey) ![swift](https://img.shields.io/badge/swift--tools-5.9-orange) ![repo](https://img.shields.io/badge/repo-private-red)
 
 > [!NOTE]
 > **This README is an integration runbook for AI coding agents.** It tells an agent how to add waangu-chat to an **existing** iOS app: which command to run, how to read the result, what it may do alone, and when it **must stop and ask a human**. People can follow it too.
@@ -42,13 +42,13 @@ Leave `modules:` out and you get calls, status and communities (everything excep
 
 ### Step 2: Add the package
 
-**Xcode project:** File → Add Package Dependencies → paste the package URL (SSH, see [Package facts](#package-facts)) → rule *Up to Next Major* from `0.2.7` → add the product **`WaanguChatSDK`** to the **app target** (only that product; the other `Waangu…` products come with it).
+**Xcode project:** File → Add Package Dependencies → paste the package URL (SSH, see [Package facts](#package-facts)) → rule *Up to Next Major* from `0.2.8` → add the product **`WaanguChatSDK`** to the **app target** (only that product; the other `Waangu…` products come with it).
 
 **`Package.swift` project:**
 
 ```swift
 dependencies: [
-    .package(url: "ssh://git@ssh.github.com:443/dondivinAsyst/waangu-chat-SDK.git", from: "0.2.7"),
+    .package(url: "ssh://git@ssh.github.com:443/dondivinAsyst/waangu-chat-SDK.git", from: "0.2.8"),
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
@@ -194,14 +194,21 @@ Make the call before the user can open chat. If chat is opened first, the view s
 import SwiftUI
 import WaanguChatSDK
 
-struct ChatScreen: View {
+struct HomeView: View {
+    @State private var showChat = false
+
     var body: some View {
-        WaanguChatView()   // uses the chat set up in Step 5
+        Button("Chat") { showChat = true }
+            .fullScreenCover(isPresented: $showChat) {
+                WaanguChatView(onClose: { showChat = false })   // uses the chat set up in Step 5
+            }
     }
 }
 ```
 
-Present it as a tab, a sheet or a full-screen cover. It shows chat's sign-in screen at once (the logo and three dots), which logs in to chat with your token and then shows the inbox. If Step 5 has not run, or building the screens fails, it shows a retry button (an icon: the package has no user-visible wording of its own).
+**Present chat in a full-screen cover** (`.fullScreenCover`), as above. Chat has its own tab bar and navigation, and its own back button to leave. Do not push it on a `NavigationStack`, put it in a `TabView` tab or show it in a sheet: your app's bars would sit on top of chat's, and back would not always leave chat.
+
+It shows chat's sign-in screen at once (the logo and three dots), which logs in to chat with your token and then shows the inbox. If Step 5 has not run, or building the screens fails, it shows a retry button (an icon: the package has no user-visible wording of its own).
 
 *Older form:* `WaanguChatView(configuration:accessToken:)` still works, for apps written against earlier versions. It repeats the values from Step 5, and the values from the first call win. New code uses `WaanguChatView()`.
 
@@ -212,7 +219,7 @@ Present it as a tab, a sheet or a full-screen cover. It shows chat's sign-in scr
 3. **After chat's sign-in:** realtime and sync start, with the chat session the sign-in just got. They never start before it, so there is only one chat login at a time.
 4. **While the view is on screen:** chat follows the app going to the background and back.
 
-**Leaving chat.** Chat's back and exit buttons dismiss the view, which is right for a sheet, a full-screen cover or a pushed screen. In a tab, or to do something else, pass `onClose: { ... }` to the view.
+**Leaving chat.** Chat's back and exit buttons call `onClose`. Set your cover's flag to `false` there, as above. Without `onClose`, they dismiss the view.
 
 ### Step 7: Sign out
 
@@ -251,7 +258,7 @@ This disconnects chat and clears the conversations kept on the device. Remove th
 | The retry icon as soon as chat opens | `WaanguChat.warmUpSelfManaged(configuration:accessToken:)` was not called at start-up (Step 5), or chat was opened before it. |
 | A plain progress indicator when chat opens, before the sign-in screen | The start-up call is still running, or (older form) launch work is running on open. If it never ends, read the console from the moment chat opens. |
 | The sign-in screen shows, then a failure screen or retries | The token closure returned `nil`, your app id is not registered (Step 4), or the device cannot reach the chat servers (`-1001` timed out / `-1004` cannot connect in the console). Check those first. |
-| Back button in chat does nothing | You present chat where dismissing does nothing (for example a tab). Pass `onClose:` to the view. |
+| Back button in chat does nothing, or two bars at the top | Chat is not in a full-screen cover, or `onClose` does not close it. Present it with `.fullScreenCover` and set the cover's flag to `false` in `onClose` (Step 6). |
 | Crash about duplicate table registration | Chat's tables were registered twice. With the quick start, do not also build a `WaanguChat` or a database yourself; on the full form, create exactly one database. |
 | Calls never ring after the app is closed | Incoming-call pushes are not covered (see above). |
 | Payments entries do not show | `.payments` is not in `modules`, or the backend does not allow it for that account. |
@@ -341,7 +348,7 @@ If you need to own the database, token store, metrics or overrides, use the full
 | **Package URL (SSH)** | `git@github.com:dondivinAsyst/waangu-chat-SDK.git` |
 | **Package URL (SSH over 443)** | `ssh://git@ssh.github.com:443/dondivinAsyst/waangu-chat-SDK.git` (use when port 22 times out) |
 | **Package identity** | `waangu-chat-sdk` (SwiftPM takes it from the repository name; use as `package:` in `.product(...)`) |
-| **Current version** | `0.2.7` |
+| **Current version** | `0.2.8` |
 | **Platforms** | iOS 17+ · `swift-tools-version: 5.9` (Xcode 15+) |
 | **Tool** | `Tools/module_tool.py` (Python 3.9+, standard library only) |
 | **Repo access** | Private: the machine needs a GitHub account with access, or a read-only deploy key |
@@ -396,7 +403,7 @@ git ls-remote git@github.com:dondivinAsyst/waangu-chat-SDK.git | grep -c 'refs/t
 **Always run `plan` first.** It is read-only and decides for you. It needs the tool, so do [2.1 Get the tool](#21-get-the-tool) even if you end up on Way 1:
 
 ```bash
-git clone --branch 0.2.7 git@github.com:dondivinAsyst/waangu-chat-SDK.git ~/tools/waangu-chat
+git clone --branch 0.2.8 git@github.com:dondivinAsyst/waangu-chat-SDK.git ~/tools/waangu-chat
 T=~/tools/waangu-chat/Tools/module_tool.py
 python3 $T plan /path/to/app --out /tmp/waangu-plan
 ```
@@ -434,7 +441,7 @@ python3 $T apply /path/to/app --target <Target> --out /tmp/waangu-apply
 
 - `<Target>` is the app target that will show the chat.
 - Add `--url ssh://git@ssh.github.com:443/dondivinAsyst/waangu-chat-SDK.git` if port 22 is blocked.
-- The branch is `waangu-chat/0.2.7`; the folder is `../<repo>-waangu-chat-0.2.7` (`merge.json` → `applied.worktree`).
+- The branch is `waangu-chat/0.2.8`; the folder is `../<repo>-waangu-chat-0.2.8` (`merge.json` → `applied.worktree`).
 
 **Option B: make the edit yourself.** Add exactly these two lines and change nothing else:
 
@@ -444,7 +451,7 @@ let package = Package(
     platforms: [.iOS(.v17)],
     dependencies: [
         // … existing dependencies, unchanged …
-        .package(url: "git@github.com:dondivinAsyst/waangu-chat-SDK.git", from: "0.2.7"),   // ← ADD
+        .package(url: "git@github.com:dondivinAsyst/waangu-chat-SDK.git", from: "0.2.8"),   // ← ADD
     ],
     targets: [
         .target(
@@ -461,7 +468,7 @@ let package = Package(
 
 Rules for the edit:
 - The `.package(...)` line goes in the **top-level** `dependencies:` of `Package(`, not inside a target.
-- If `Package(` has no `dependencies:`, add one before `targets:`: `dependencies: [ .package(url: …, from: "0.2.7"), ],`
+- If `Package(` has no `dependencies:`, add one before `targets:`: `dependencies: [ .package(url: …, from: "0.2.8"), ],`
 - The `.product(...)` line goes in the `dependencies:` of the target that shows chat.
 - To use a kit directly too, add e.g. `.product(name: "WaanguStorageKit", package: "waangu-chat-sdk")` to that target.
 
@@ -477,7 +484,7 @@ swift package resolve
 
 1. Xcode → **File → Add Package Dependencies…**
 2. Paste `git@github.com:dondivinAsyst/waangu-chat-SDK.git`
-3. Dependency Rule: **Up to Next Minor Version**, `0.2.7`
+3. Dependency Rule: **Up to Next Minor Version**, `0.2.8`
 4. Tick **`WaanguChatSDK`** (the ready-to-use chat) or **`WaanguFeatureChat`** (the chat feature only), choose the app target, then **Add Package**
 
 ### 1.3 Verify Way 1
@@ -488,8 +495,8 @@ swift package show-dependencies | grep -E 'waangu-chat|grdb|mediasoup|ogg|opus'
 ```
 
 Expected:
-- `waangu-chat-sdk<…@0.2.7>`
-- under it: `sdwebimageswiftui`, `cocoamqtt`, `ogg-binary-xcframework@0.1.3`, `opus-binary-xcframework@0.2.7`, `disk`, `mediasoup-client-swift@0.13.2`, `grdb.swift@7.0.0`, `lottie-ios`
+- `waangu-chat-sdk<…@0.2.8>`
+- under it: `sdwebimageswiftui`, `cocoamqtt`, `ogg-binary-xcframework@0.1.3`, `opus-binary-xcframework@0.2.8`, `disk`, `mediasoup-client-swift@0.13.2`, `grdb.swift@7.0.0`, `lottie-ios`
 
 Then go to [After either way: make chat run](#after-either-way-make-chat-run).
 
@@ -514,14 +521,14 @@ Then go to [After either way: make chat run](#after-either-way-make-chat-run).
 Use a **full** clone (no `--depth`), because later updates need older tags:
 
 ```bash
-git clone --branch 0.2.7 git@github.com:dondivinAsyst/waangu-chat-SDK.git ~/tools/waangu-chat
+git clone --branch 0.2.8 git@github.com:dondivinAsyst/waangu-chat-SDK.git ~/tools/waangu-chat
 T=~/tools/waangu-chat/Tools/module_tool.py
 ```
 
 If `~/tools/waangu-chat` already exists:
 
 ```bash
-git -C ~/tools/waangu-chat fetch --tags && git -C ~/tools/waangu-chat checkout 0.2.7
+git -C ~/tools/waangu-chat fetch --tags && git -C ~/tools/waangu-chat checkout 0.2.8
 ```
 
 ### 2.2 Plan
@@ -569,7 +576,7 @@ echo "exit=$?"
 
 Add `--history /path/to/waangu-user-ios` **only if** that repository is on the machine. It gives 3-way merges with the real common ancestor, so fewer conflicts.
 
-What happens, on branch `waangu-chat/0.2.7`, in folder `../<repo>-waangu-chat-0.2.7`, with **nothing committed** and the app's own working copy untouched:
+What happens, on branch `waangu-chat/0.2.8`, in folder `../<repo>-waangu-chat-0.2.8`, with **nothing committed** and the app's own working copy untouched:
 
 | # | Action |
 |---|---|
@@ -1148,7 +1155,7 @@ The app's changes are kept, and its own `Package.swift` isn't touched. Finish as
 When done (or stopped), report:
 
 1. **Way used:** 1 or 2, and why (the `plan.json` classifications)
-2. **Branch and worktree:** Way 2 or Way 1 option A, e.g. `waangu-chat/0.2.7`, `<path>`
+2. **Branch and worktree:** Way 2 or Way 1 option A, e.g. `waangu-chat/0.2.8`, `<path>`
 3. **Merged modules:** `merge.json` → `kits` (Way 2)
 4. **Conflicts you resolved:** file + what you kept
 5. **Escalated items:** each with its code (E1–E7) and the exact message
@@ -1217,7 +1224,7 @@ python3 $T apply   <app> [--target NAME] [--worktree DIR] [--history PATH] [--ur
 {
   "schema": 1,
   "planId": "plan-…",
-  "request":   { "feature": "WaanguFeatureChat", "package": "waangu-chat-sdk", "version": "0.2.7",
+  "request":   { "feature": "WaanguFeatureChat", "package": "waangu-chat-sdk", "version": "0.2.8",
                  "referenceMode": "release", "historyAvailable": false },
   "destination": { "path": "…", "gitRoot": "…", "head": "…", "branch": "…", "sharedBase": null },
   "modules": [
@@ -1247,7 +1254,7 @@ python3 $T apply   <app> [--target NAME] [--worktree DIR] [--history PATH] [--ur
   "schema": 1,
   "command": "apply",                 // "merge" | "apply"
   "mode": "first",                    // "remote" (Way 1 option A) | "first" (Way 2) | "update"
-  "version": "0.2.7",
+  "version": "0.2.8",
   "fromVersion": null,                // previous version in "update" mode
   "kits": ["WaanguCoreKit", "WaanguSharedUI"],
   "blockers": ["…"],                  // non-empty → nothing applied
@@ -1258,8 +1265,8 @@ python3 $T apply   <app> [--target NAME] [--worktree DIR] [--history PATH] [--ur
                               "uses": ["RemoteImage"],
                               "conflictFiles": ["Sources/SharedUI/Components/RemoteImage.swift"] } ],
   "applied": {                        // null for "merge" and when blocked
-    "worktree": "/path/to/<repo>-waangu-chat-0.2.7",
-    "branch": "waangu-chat/0.2.7",
+    "worktree": "/path/to/<repo>-waangu-chat-0.2.8",
+    "branch": "waangu-chat/0.2.8",
     "notes": ["…"],
     "verified": [ { "manifest": "Packages/Package.swift", "ok": true, "error": "" } ],
     "xcode": ["… re-link instructions …"],

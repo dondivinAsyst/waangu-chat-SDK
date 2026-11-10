@@ -39,7 +39,7 @@ struct MessageItem: Identifiable {
     }
     
     var backgroundColor: Color {
-        return direction == .sent ?  Color("bubbleSent", bundle: .nativeUi) : Color("bubbleReceived", bundle: .nativeUi)
+        return direction == .sent ?  Color("bubbleSent", bundle: .module) : Color("bubbleReceived", bundle: .module)
     }
 
     
