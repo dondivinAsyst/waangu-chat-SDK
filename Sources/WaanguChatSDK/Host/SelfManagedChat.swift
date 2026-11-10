@@ -43,6 +43,13 @@ actor SelfManagedChat {
         return created
     }
 
+    /// The chat `warmUpSelfManaged` built, waiting for it if it is still being built; `nil` if
+    /// no start-up call was made.
+    func current() async -> WaanguChat? {
+        guard let building else { return nil }
+        return await building.value
+    }
+
     /// The host app's `SessionManager` does this for the app that owns the code: the session
     /// starts once the chat login has happened, not at the same time as it. The chat sign-in
     /// screen publishes `UserChatDidLoginEvent` when it has a session; realtime and sync start

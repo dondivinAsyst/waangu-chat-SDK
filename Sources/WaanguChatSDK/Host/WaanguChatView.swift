@@ -10,26 +10,11 @@ import WaanguFeatureChat
 
 /// Chat, ready to present: a tab of your app, a sheet, a full-screen cover.
 ///
-/// It prepares chat, connects the signed-in session and builds the chat screens. While it does,
-/// it shows a progress indicator; if that fails it shows a retry button (an icon, no text: the
-/// package carries no user-visible wording of its own).
+/// Give chat its configuration and token closure once, at app start-up, then show it:
 ///
 /// ```swift
-/// WaanguChatView(chat: chat)
-/// ```
-///
-/// With `init(chat:)` you still call `warmUp()` at launch, `startSession()` after each chat
-/// login, `appDidEnterForeground()`, `appDidEnterBackground()` and `endSession()` on
-/// `WaanguChat` yourself, from your own start-up, scene and sign-out code.
-///
-/// The short form needs one more call, at app start-up, with the same values:
-/// `await WaanguChat.warmUpSelfManaged(configuration:accessToken:)`. It builds chat's database,
-/// registers its tables and topics and registers the chat feature, so opening chat only builds
-/// the screens. Chat then connects after its own sign-in, and follows the app going to the
-/// background and back while this view is on screen.
-///
-/// ```swift
-/// WaanguChatView(
+/// // At start-up
+/// await WaanguChat.warmUpSelfManaged(
 ///     configuration: WaanguChatConfiguration(
 ///         appId: "my-app-id",
 ///         userId: "my-user-id",
@@ -38,12 +23,28 @@ import WaanguFeatureChat
 ///         realtime: .init(host: "<mqtt host>", port: 8883, useTLS: true)),
 ///     accessToken: { await myApp.currentAccessToken() }
 /// )
+///
+/// // When the user opens chat
+/// WaanguChatView()
 /// ```
+///
+/// The start-up call builds chat's database, registers its tables and topics and registers the
+/// chat feature, so opening chat only builds the screens. Chat connects after its own sign-in,
+/// and follows the app going to the background and back while this view is on screen. If
+/// building the screens fails, or `warmUpSelfManaged` was never called, the view shows a retry
+/// button (an icon, no text: the package carries no user-visible wording of its own).
+///
+/// With `init(chat:)`, a chat you built yourself, you call `warmUp()` at launch,
+/// `startSession()` after each chat login, `appDidEnterForeground()`, `appDidEnterBackground()`
+/// and `endSession()` on `WaanguChat` yourself, from your own start-up, scene and sign-out code.
 @available(iOS 17.0, *)
 public struct WaanguChatView: View {
 
     private enum Source {
         case provided(WaanguChat)
+        /// The chat `WaanguChat.warmUpSelfManaged` built at start-up.
+        case warmedUp
+        /// Older form: the values again, on the view. Kept so existing hosts still compile.
         case selfManaged(WaanguChatConfiguration, @Sendable () async -> String?)
     }
 
@@ -64,8 +65,15 @@ public struct WaanguChatView: View {
         self.onClose = onClose
     }
 
-    /// Plug and play. `accessToken` is asked each time chat needs the signed-in user's token; it
-    /// returns `nil` when nobody is signed in.
+    /// The chat set up at start-up with `WaanguChat.warmUpSelfManaged(configuration:accessToken:)`.
+    /// Shows the retry button until that call has been made.
+    public init(onClose: (() -> Void)? = nil) {
+        self.source = .warmedUp
+        self.onClose = onClose
+    }
+
+    /// Older form, still supported: the same values as `warmUpSelfManaged`, given again here.
+    /// The values from the first call win. Prefer `init(onClose:)`.
     public init(
         configuration: WaanguChatConfiguration,
         accessToken: @escaping @Sendable () async -> String?,
@@ -93,7 +101,8 @@ public struct WaanguChatView: View {
         }
         .task { await load() }
         .onChange(of: scenePhase) { _, phase in
-            guard case .selfManaged = source, let chat else { return }
+            if case .provided = source { return }
+            guard let chat else { return }
             Task {
                 switch phase {
                 case .active: await chat.appDidEnterForeground()
@@ -112,6 +121,12 @@ public struct WaanguChatView: View {
         switch source {
         case .provided(let provided):
             chat = provided
+        case .warmedUp:
+            guard let warmed = await SelfManagedChat.shared.current() else {
+                failed = true
+                return
+            }
+            chat = warmed
         case .selfManaged(let configuration, let accessToken):
             chat = await SelfManagedChat.shared.chat(configuration: configuration, accessToken: accessToken)
         }
@@ -145,10 +160,11 @@ public struct WaanguChatView: View {
 
 extension WaanguChat {
 
-    /// Launch work for a host that uses `WaanguChatView(configuration:accessToken:)`: call it once
-    /// from your app's start-up task, with the same values you give the view. It builds chat's
-    /// database, registers its tables and realtime topics and registers the chat feature. Without
-    /// it, all of that runs when the user first opens chat, behind the spinner.
+    /// Chat's start-up call, and the only place its configuration and token closure are given.
+    /// Call it once from your app's start-up task; then show chat with `WaanguChatView()`. It
+    /// builds chat's database, registers its tables and realtime topics and registers the chat
+    /// feature, so opening chat only builds the screens. Safe to call again: later calls reuse the
+    /// chat from the first one and ignore their values.
     public static func warmUpSelfManaged(
         configuration: WaanguChatConfiguration,
         accessToken: @escaping @Sendable () async -> String?
@@ -157,7 +173,7 @@ extension WaanguChat {
         await chat.warmUp()
     }
 
-    /// Sign-out for a host that uses `WaanguChatView(configuration:accessToken:)`: call it when the
+    /// Sign-out for a host that uses `warmUpSelfManaged` and `WaanguChatView()`: call it when the
     /// user chooses to sign out of your app. It clears the conversations kept on the device and
     /// disconnects. Do not call it when a session expires: the conversations stay.
     public static func signOutSelfManaged() async {

@@ -2,7 +2,7 @@
 
 **Waangu chat (`FeatureChat`) and the kits it depends on, as one Swift package.**
 
-![version](https://img.shields.io/badge/version-0.2.6-blue) ![platform](https://img.shields.io/badge/platform-iOS%2017%2B-lightgrey) ![swift](https://img.shields.io/badge/swift--tools-5.9-orange) ![repo](https://img.shields.io/badge/repo-private-red)
+![version](https://img.shields.io/badge/version-0.2.7-blue) ![platform](https://img.shields.io/badge/platform-iOS%2017%2B-lightgrey) ![swift](https://img.shields.io/badge/swift--tools-5.9-orange) ![repo](https://img.shields.io/badge/repo-private-red)
 
 > [!NOTE]
 > **This README is an integration runbook for AI coding agents.** It tells an agent how to add waangu-chat to an **existing** iOS app: which command to run, how to read the result, what it may do alone, and when it **must stop and ask a human**. People can follow it too.
@@ -25,7 +25,9 @@ Adding the `WaanguChatSDK` product gives the app Waangu's whole chat, not a tool
 | **Communities** | The Communities tab | `.communities` |
 | **Payments** | Send and request money, bills, top-up, QR, split bills, cash in and out, receipts, disputes, merchant invoices, and the finance assistant | `.payments` (**off** unless you ask) |
 
-Leave `modules:` out and you get calls, status and communities (everything except payments). A part that is off shows no entry point.
+Leave `modules:` out and you get calls, status and communities (everything except payments). A part that is off shows no entry point. Turning `.calls` off does not stop an incoming call from ringing (the VoIP and CallKit managers own that); groups are not a module.
+
+**Payments, when on:** the services Chat Core already serves are live, and unfinished operations are saved per account on the device. The balance shown in chat comes from a wallet; an app without a wallet shows it as unavailable. Your backend still decides what each user may do, and the server's capability answer applies on top of `.payments`.
 
 **Not included:** the other Waangu app features (wallet, ride, insurance, marketplace, consultations), location and observability (no Firebase, no Sentry). Cards, mandates, remittance, FX, credit, savings, investment and PFM have no live backend yet and stay closed: nothing is simulated.
 
@@ -40,13 +42,13 @@ Leave `modules:` out and you get calls, status and communities (everything excep
 
 ### Step 2: Add the package
 
-**Xcode project:** File → Add Package Dependencies → paste the package URL (SSH, see [Package facts](#package-facts)) → rule *Up to Next Major* from `0.2.6` → add the product **`WaanguChatSDK`** to the **app target** (only that product; the other `Waangu…` products come with it).
+**Xcode project:** File → Add Package Dependencies → paste the package URL (SSH, see [Package facts](#package-facts)) → rule *Up to Next Major* from `0.2.7` → add the product **`WaanguChatSDK`** to the **app target** (only that product; the other `Waangu…` products come with it).
 
 **`Package.swift` project:**
 
 ```swift
 dependencies: [
-    .package(url: "ssh://git@ssh.github.com:443/dondivinAsyst/waangu-chat-SDK.git", from: "0.2.6"),
+    .package(url: "ssh://git@ssh.github.com:443/dondivinAsyst/waangu-chat-SDK.git", from: "0.2.7"),
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
@@ -133,7 +135,9 @@ Chat does not know your users; it asks your backend.
 
 ### Step 5: Prepare chat at app start-up
 
-Chat has launch work: it builds its database, registers its tables and realtime topics, and registers the chat feature. Do it when your app starts, not when the user opens chat, so opening chat only builds the screens. Use the **same** configuration and token closure you give the view in Step 6.
+Chat has launch work: it builds its database, registers its tables and realtime topics, and registers the chat feature. Do it when your app starts, not when the user opens chat, so opening chat only builds the screens.
+
+This call is the only place chat's configuration and your token closure are given:
 
 ```swift
 import SwiftUI
@@ -145,65 +149,26 @@ struct YourApp: App {
         WindowGroup {
             RootView()
                 .task {
-                    // Once, at start-up. Safe to call again; the view waits for it if it is still running.
+                    // Once, at start-up. Safe to call again; later calls reuse the first chat.
                     await WaanguChat.warmUpSelfManaged(
-                        configuration: ChatSetup.configuration,
-                        accessToken: { await yourApp.currentAccessToken() }
+                        configuration: WaanguChatConfiguration(
+                            appId: "<your app id>",
+                            userId: "<the signed-in user's id>",
+                            chatBaseURL: "<chat API address>",
+                            chatUploadBaseURL: "<chat upload address>",
+                            mainAPIBaseURL: "<your main API address>",
+                            realtime: .init(host: "<mqtt host>", port: 8883, useTLS: true),
+                            modules: [.calls, .status, .communities]   // messaging is always on; add .payments for payments
+                        ),
+                        accessToken: { await yourApp.currentAccessToken() }   // nil when nobody is signed in
                     )
                 }
         }
     }
 }
-
-enum ChatSetup {
-    static let configuration = WaanguChatConfiguration(
-        appId: "<your app id>",
-        userId: "<the signed-in user's id>",
-        chatBaseURL: "<chat API address>",
-        chatUploadBaseURL: "<chat upload address>",
-        mainAPIBaseURL: "<your main API address>",
-        realtime: .init(host: "<mqtt host>", port: 8883, useTLS: true),
-        modules: [.calls, .status, .communities]         // messaging is always on; add .payments for payments
-    )
-}
 ```
 
-If you skip this step chat still works, but all of that work runs behind a progress indicator the first time the user opens chat.
-
-### Step 6: Show the chat
-
-```swift
-import SwiftUI
-import WaanguChatSDK
-
-struct ChatScreen: View {
-    var body: some View {
-        WaanguChatView(
-            configuration: WaanguChatConfiguration(
-                appId: "<your app id>",
-                userId: "<the signed-in user's id>",
-                chatBaseURL: "<chat API address>",
-                chatUploadBaseURL: "<chat upload address>",
-                mainAPIBaseURL: "<your main API address>",
-                realtime: .init(host: "<mqtt host>", port: 8883, useTLS: true),
-                modules: [.calls, .status, .communities]         // messaging is always on; add .payments for payments
-            ),
-            accessToken: { await yourApp.currentAccessToken() } // nil when nobody is signed in
-        )
-    }
-}
-```
-
-Present it as a tab, a sheet or a full-screen cover. With Step 5 done, it shows chat's sign-in screen at once (the logo and three dots), which logs in to chat with your token and then shows the inbox. If building the screens fails it shows a retry button (an icon: the package has no user-visible wording of its own).
-
-**The order chat follows** (the same as the app it comes from):
-
-1. **App start-up** (Step 5): database, tables, realtime topics, chat feature registered. Nothing connects.
-2. **Open chat:** the screens are built and the sign-in screen appears. If a chat session from an earlier login is still valid, realtime and sync start now, in the background.
-3. **After chat's sign-in:** realtime and sync start, with the chat session the sign-in just got. They never start before it, so there is only one chat login at a time.
-4. **While the view is on screen:** chat follows the app going to the background and back.
-
-**Leaving chat.** Chat's back and exit buttons dismiss the view, which is right for a sheet, a full-screen cover or a pushed screen. In a tab, or to do something else, pass `onClose: { ... }` to the view.
+Make the call before the user can open chat. If chat is opened first, the view shows its retry button until this call has run.
 
 **Configuration** (`WaanguChatConfiguration(appId:userId:chatBaseURL:chatUploadBaseURL:mainAPIBaseURL:realtime:basicAuthToken:keychainService:modules:)`):
 
@@ -217,13 +182,37 @@ Present it as a tab, a sheet or a full-screen cover. With Step 5 done, it shows 
 | `realtime` | The MQTT broker: `.init(host:port:useTLS:)` | required |
 | `basicAuthToken` | Sent as `Authorization` before the user has a token; `nil` sends nothing | `nil` |
 | `keychainService` | Keychain service holding chat's own session and keys | your bundle identifier |
-| `modules` | Which parts of chat are on, from `.calls`, `.status`, `.communities`, `.payments` | calls, status and communities (no payments) |
+| `modules` | Which parts of chat are on (see [What you get](#what-you-get)) | calls, status and communities (no payments) |
 
 **The token closure.** Chat calls `accessToken` every time it needs your token and never stores it. It returns `nil` when nobody is signed in. Chat cannot renew an expired token: your closure must return a current one, using your own login and refresh.
 
 **What the closure covers, and what it does not.** Your token is used for chat's HTTP calls, for the chat login and for file uploads, and it is read again each time one is sent, so a token you renewed is used at once. The realtime connection (MQTT) does not use your token. It uses a chat session that chat gets when it logs in (`chat-login`), which the server gives a lifetime (24 hours on the current servers) and which cannot be refreshed. When that session runs out, chat logs in again by itself with your current token: when the app comes back to the foreground, and when the realtime connection reconnects. That login needs your closure to return a valid token and `userId` to be set. If the login fails, realtime stays offline until the next try.
 
-**Payments.** Turn them on with `modules: [.calls, .status, .communities, .payments]`. When on, the services Chat Core already serves are live and unfinished operations are saved per account on the device. The balance shown in chat comes from a wallet; an app without a wallet shows it as unavailable. Your backend still decides what each user may do.
+### Step 6: Show the chat
+
+```swift
+import SwiftUI
+import WaanguChatSDK
+
+struct ChatScreen: View {
+    var body: some View {
+        WaanguChatView()   // uses the chat set up in Step 5
+    }
+}
+```
+
+Present it as a tab, a sheet or a full-screen cover. It shows chat's sign-in screen at once (the logo and three dots), which logs in to chat with your token and then shows the inbox. If Step 5 has not run, or building the screens fails, it shows a retry button (an icon: the package has no user-visible wording of its own).
+
+*Older form:* `WaanguChatView(configuration:accessToken:)` still works, for apps written against earlier versions. It repeats the values from Step 5, and the values from the first call win. New code uses `WaanguChatView()`.
+
+**The order chat follows** (the same as the app it comes from):
+
+1. **App start-up** (Step 5): database, tables, realtime topics, chat feature registered. Nothing connects.
+2. **Open chat:** the screens are built and the sign-in screen appears. If a chat session from an earlier login is still valid, realtime and sync start now, in the background.
+3. **After chat's sign-in:** realtime and sync start, with the chat session the sign-in just got. They never start before it, so there is only one chat login at a time.
+4. **While the view is on screen:** chat follows the app going to the background and back.
+
+**Leaving chat.** Chat's back and exit buttons dismiss the view, which is right for a sheet, a full-screen cover or a pushed screen. In a tab, or to do something else, pass `onClose: { ... }` to the view.
 
 ### Step 7: Sign out
 
@@ -237,9 +226,8 @@ This disconnects chat and clears the conversations kept on the device. Remove th
 
 ### Step 8: Verify
 
-- [ ] The app builds and launches. The console shows the chat table registrations and `WaanguChatSDK <version>` at start-up, before you open chat.
+- [ ] The app builds and launches. At start-up, before you open chat, the console shows the chat table registrations and `WaanguChatSDK <version>` once, with the version of the package you added.
 - [ ] Opening chat shows chat's sign-in screen (logo and three dots) at once, then the inbox.
-- [ ] `WaanguChatSDK <version>` appears once (the version of the package you added).
 - [ ] You can send a message between two accounts, and it arrives live.
 - [ ] If `.calls` is on, a call rings and the permission prompts show your texts.
 - [ ] If `.payments` is on, the money entries appear in a chat.
@@ -260,10 +248,11 @@ This disconnects chat and clears the conversations kept on the device. Remove th
 | Resolution fails: version conflict on `GRDB`, `mediasoup-client-swift`, `CocoaMQTT`, Opus or Ogg | Your app pins another version of a package listed in [Package facts](#package-facts). Align the pin; do not change ours. |
 | "unable to override package" | A local package in your app has the same name as this one. Rename it; the package identity is `waangu-chat-sdk`. |
 | Crash the first time a screen opens, or "attempted to access privacy-sensitive data without a usage description" | A missing Info.plist usage text in **your app** (Step 3). The message names the missing key (for example `NSMicrophoneUsageDescription`). Add it and reinstall the app. |
-| A plain progress indicator when chat opens, before the sign-in screen | Launch work is running on open: call `WaanguChat.warmUpSelfManaged(configuration:accessToken:)` at start-up (Step 5). If it never ends, read the console from the moment chat opens. |
+| The retry icon as soon as chat opens | `WaanguChat.warmUpSelfManaged(configuration:accessToken:)` was not called at start-up (Step 5), or chat was opened before it. |
+| A plain progress indicator when chat opens, before the sign-in screen | The start-up call is still running, or (older form) launch work is running on open. If it never ends, read the console from the moment chat opens. |
 | The sign-in screen shows, then a failure screen or retries | The token closure returned `nil`, your app id is not registered (Step 4), or the device cannot reach the chat servers (`-1001` timed out / `-1004` cannot connect in the console). Check those first. |
 | Back button in chat does nothing | You present chat where dismissing does nothing (for example a tab). Pass `onClose:` to the view. |
-| Crash about duplicate table registration | Chat's tables were registered twice. Use only `WaanguChatView(configuration:accessToken:)`, or, on the full form, create exactly one database. |
+| Crash about duplicate table registration | Chat's tables were registered twice. With the quick start, do not also build a `WaanguChat` or a database yourself; on the full form, create exactly one database. |
 | Calls never ring after the app is closed | Incoming-call pushes are not covered (see above). |
 | Payments entries do not show | `.payments` is not in `modules`, or the backend does not allow it for that account. |
 
@@ -352,7 +341,7 @@ If you need to own the database, token store, metrics or overrides, use the full
 | **Package URL (SSH)** | `git@github.com:dondivinAsyst/waangu-chat-SDK.git` |
 | **Package URL (SSH over 443)** | `ssh://git@ssh.github.com:443/dondivinAsyst/waangu-chat-SDK.git` (use when port 22 times out) |
 | **Package identity** | `waangu-chat-sdk` (SwiftPM takes it from the repository name; use as `package:` in `.product(...)`) |
-| **Current version** | `0.2.6` |
+| **Current version** | `0.2.7` |
 | **Platforms** | iOS 17+ · `swift-tools-version: 5.9` (Xcode 15+) |
 | **Tool** | `Tools/module_tool.py` (Python 3.9+, standard library only) |
 | **Repo access** | Private: the machine needs a GitHub account with access, or a read-only deploy key |
@@ -407,7 +396,7 @@ git ls-remote git@github.com:dondivinAsyst/waangu-chat-SDK.git | grep -c 'refs/t
 **Always run `plan` first.** It is read-only and decides for you. It needs the tool, so do [2.1 Get the tool](#21-get-the-tool) even if you end up on Way 1:
 
 ```bash
-git clone --branch 0.2.6 git@github.com:dondivinAsyst/waangu-chat-SDK.git ~/tools/waangu-chat
+git clone --branch 0.2.7 git@github.com:dondivinAsyst/waangu-chat-SDK.git ~/tools/waangu-chat
 T=~/tools/waangu-chat/Tools/module_tool.py
 python3 $T plan /path/to/app --out /tmp/waangu-plan
 ```
@@ -445,7 +434,7 @@ python3 $T apply /path/to/app --target <Target> --out /tmp/waangu-apply
 
 - `<Target>` is the app target that will show the chat.
 - Add `--url ssh://git@ssh.github.com:443/dondivinAsyst/waangu-chat-SDK.git` if port 22 is blocked.
-- The branch is `waangu-chat/0.2.6`; the folder is `../<repo>-waangu-chat-0.2.6` (`merge.json` → `applied.worktree`).
+- The branch is `waangu-chat/0.2.7`; the folder is `../<repo>-waangu-chat-0.2.7` (`merge.json` → `applied.worktree`).
 
 **Option B: make the edit yourself.** Add exactly these two lines and change nothing else:
 
@@ -455,7 +444,7 @@ let package = Package(
     platforms: [.iOS(.v17)],
     dependencies: [
         // … existing dependencies, unchanged …
-        .package(url: "git@github.com:dondivinAsyst/waangu-chat-SDK.git", from: "0.2.6"),   // ← ADD
+        .package(url: "git@github.com:dondivinAsyst/waangu-chat-SDK.git", from: "0.2.7"),   // ← ADD
     ],
     targets: [
         .target(
@@ -472,7 +461,7 @@ let package = Package(
 
 Rules for the edit:
 - The `.package(...)` line goes in the **top-level** `dependencies:` of `Package(`, not inside a target.
-- If `Package(` has no `dependencies:`, add one before `targets:`: `dependencies: [ .package(url: …, from: "0.2.6"), ],`
+- If `Package(` has no `dependencies:`, add one before `targets:`: `dependencies: [ .package(url: …, from: "0.2.7"), ],`
 - The `.product(...)` line goes in the `dependencies:` of the target that shows chat.
 - To use a kit directly too, add e.g. `.product(name: "WaanguStorageKit", package: "waangu-chat-sdk")` to that target.
 
@@ -488,7 +477,7 @@ swift package resolve
 
 1. Xcode → **File → Add Package Dependencies…**
 2. Paste `git@github.com:dondivinAsyst/waangu-chat-SDK.git`
-3. Dependency Rule: **Up to Next Minor Version**, `0.2.6`
+3. Dependency Rule: **Up to Next Minor Version**, `0.2.7`
 4. Tick **`WaanguChatSDK`** (the ready-to-use chat) or **`WaanguFeatureChat`** (the chat feature only), choose the app target, then **Add Package**
 
 ### 1.3 Verify Way 1
@@ -499,8 +488,8 @@ swift package show-dependencies | grep -E 'waangu-chat|grdb|mediasoup|ogg|opus'
 ```
 
 Expected:
-- `waangu-chat-sdk<…@0.2.6>`
-- under it: `sdwebimageswiftui`, `cocoamqtt`, `ogg-binary-xcframework@0.1.3`, `opus-binary-xcframework@0.2.6`, `disk`, `mediasoup-client-swift@0.13.2`, `grdb.swift@7.0.0`, `lottie-ios`
+- `waangu-chat-sdk<…@0.2.7>`
+- under it: `sdwebimageswiftui`, `cocoamqtt`, `ogg-binary-xcframework@0.1.3`, `opus-binary-xcframework@0.2.7`, `disk`, `mediasoup-client-swift@0.13.2`, `grdb.swift@7.0.0`, `lottie-ios`
 
 Then go to [After either way: make chat run](#after-either-way-make-chat-run).
 
@@ -525,14 +514,14 @@ Then go to [After either way: make chat run](#after-either-way-make-chat-run).
 Use a **full** clone (no `--depth`), because later updates need older tags:
 
 ```bash
-git clone --branch 0.2.6 git@github.com:dondivinAsyst/waangu-chat-SDK.git ~/tools/waangu-chat
+git clone --branch 0.2.7 git@github.com:dondivinAsyst/waangu-chat-SDK.git ~/tools/waangu-chat
 T=~/tools/waangu-chat/Tools/module_tool.py
 ```
 
 If `~/tools/waangu-chat` already exists:
 
 ```bash
-git -C ~/tools/waangu-chat fetch --tags && git -C ~/tools/waangu-chat checkout 0.2.6
+git -C ~/tools/waangu-chat fetch --tags && git -C ~/tools/waangu-chat checkout 0.2.7
 ```
 
 ### 2.2 Plan
@@ -580,7 +569,7 @@ echo "exit=$?"
 
 Add `--history /path/to/waangu-user-ios` **only if** that repository is on the machine. It gives 3-way merges with the real common ancestor, so fewer conflicts.
 
-What happens, on branch `waangu-chat/0.2.6`, in folder `../<repo>-waangu-chat-0.2.6`, with **nothing committed** and the app's own working copy untouched:
+What happens, on branch `waangu-chat/0.2.7`, in folder `../<repo>-waangu-chat-0.2.7`, with **nothing committed** and the app's own working copy untouched:
 
 | # | Action |
 |---|---|
@@ -662,34 +651,9 @@ Converting those targets into a local Swift package first makes Way 2 fully appl
 > [!NOTE]
 > **Way 1 (package) only, by decision.** The merge tool does not merge the `WaanguChatSDK` target and will not: see [Choosing the way](#choosing-the-way).
 >
-> **Modules.** Messaging is always on. `modules:` picks the rest from `ChatModule`: `.calls` (Calls tab, call buttons and call engine), `.status` (the Updates tab: statuses and channels), `.communities` (Communities tab) and `.payments`. The default is `ChatModule.standard`, which is everything except payments. A module that is off shows no entry point. Limits: turning `.calls` off does not stop an incoming call from ringing (the VoIP and CallKit managers own that); groups are not a module; the server's capability answer only applies on top of `.payments`. Example: `modules: [.calls]` is messaging and calls only.
->
-> **Payments** are off unless `modules` contains `.payments`. When on, the services Chat Core already serves are live (send and request money, bills, top-up, QR reading, split bills, cash in/out, receipts, disputes, merchant invoices), and unfinished operations are saved per account in your database. Services with no live version yet (cards, mandates, remittance, FX, credit, savings, investment, PFM) stay closed: nothing is simulated. The balance shown in chat comes from the wallet, which a host without a wallet does not have, so it reads as unavailable. Your backend still decides what each user may do.
+> **Modules and payments** work as in [What you get](#what-you-get). In code the type is `ChatModule`; its default, `ChatModule.standard`, is everything except payments.
 
-Add the `WaanguChatSDK` product. **Short form (plug and play)** — this is the whole host code:
-
-```swift
-import WaanguChatSDK
-
-// Once, at app start-up, with the same values as the view:
-await WaanguChat.warmUpSelfManaged(configuration: configuration, accessToken: { await yourApp.currentAccessToken() })
-
-WaanguChatView(
-    configuration: WaanguChatConfiguration(
-        appId: "<your app id in Identity>",
-        userId: "<the signed-in user's id>",
-        chatBaseURL: "<chat API>", chatUploadBaseURL: "<chat upload API>",
-        mainAPIBaseURL: "<your main API>",
-        realtime: .init(host: "<mqtt host>", port: 8883, useTLS: true)),
-    accessToken: { await yourApp.currentAccessToken() },   // nil when nobody is signed in
-    onClose: nil                                            // nil dismisses the view; pass your own for a tab
-)
-
-// When the user chooses to sign out of your app (never on an expired session):
-await WaanguChat.signOutSelfManaged()                       // clears the device's conversations
-```
-
-The view builds its own database (at start-up when you call `warmUpSelfManaged`), starts realtime and sync after chat's own sign-in, and follows the app going to the background and back while it is on screen. `environment` (`.development`, `.staging`, `.production`) fills in the Waangu servers; the Keychain service defaults to your bundle identifier (`keychainService:` overrides it); `modules:` works as below. Your app id must be registered in Identity with a `verify-user` webhook (E7), and `userId` (required) is the id of the signed-in user, sent as `user_identifier` on chat login. Chat reads your token each time it needs one and never stores it; it cannot renew an expired token, so your closure must return a current one.
+**Short form (plug and play):** that is the [Quick start](#quick-start-add-chat-to-a-new-app), Steps 5 to 7: `WaanguChat.warmUpSelfManaged(configuration:accessToken:)` at start-up, `WaanguChatView()` to show chat, `WaanguChat.signOutSelfManaged()` when the user chooses to sign out.
 
 **Full form** — when you need to own the database, token store, metrics or overrides:
 
@@ -1184,7 +1148,7 @@ The app's changes are kept, and its own `Package.swift` isn't touched. Finish as
 When done (or stopped), report:
 
 1. **Way used:** 1 or 2, and why (the `plan.json` classifications)
-2. **Branch and worktree:** Way 2 or Way 1 option A, e.g. `waangu-chat/0.2.6`, `<path>`
+2. **Branch and worktree:** Way 2 or Way 1 option A, e.g. `waangu-chat/0.2.7`, `<path>`
 3. **Merged modules:** `merge.json` → `kits` (Way 2)
 4. **Conflicts you resolved:** file + what you kept
 5. **Escalated items:** each with its code (E1–E7) and the exact message
@@ -1253,7 +1217,7 @@ python3 $T apply   <app> [--target NAME] [--worktree DIR] [--history PATH] [--ur
 {
   "schema": 1,
   "planId": "plan-…",
-  "request":   { "feature": "WaanguFeatureChat", "package": "waangu-chat-sdk", "version": "0.2.6",
+  "request":   { "feature": "WaanguFeatureChat", "package": "waangu-chat-sdk", "version": "0.2.7",
                  "referenceMode": "release", "historyAvailable": false },
   "destination": { "path": "…", "gitRoot": "…", "head": "…", "branch": "…", "sharedBase": null },
   "modules": [
@@ -1283,7 +1247,7 @@ python3 $T apply   <app> [--target NAME] [--worktree DIR] [--history PATH] [--ur
   "schema": 1,
   "command": "apply",                 // "merge" | "apply"
   "mode": "first",                    // "remote" (Way 1 option A) | "first" (Way 2) | "update"
-  "version": "0.2.6",
+  "version": "0.2.7",
   "fromVersion": null,                // previous version in "update" mode
   "kits": ["WaanguCoreKit", "WaanguSharedUI"],
   "blockers": ["…"],                  // non-empty → nothing applied
@@ -1294,8 +1258,8 @@ python3 $T apply   <app> [--target NAME] [--worktree DIR] [--history PATH] [--ur
                               "uses": ["RemoteImage"],
                               "conflictFiles": ["Sources/SharedUI/Components/RemoteImage.swift"] } ],
   "applied": {                        // null for "merge" and when blocked
-    "worktree": "/path/to/<repo>-waangu-chat-0.2.6",
-    "branch": "waangu-chat/0.2.6",
+    "worktree": "/path/to/<repo>-waangu-chat-0.2.7",
+    "branch": "waangu-chat/0.2.7",
     "notes": ["…"],
     "verified": [ { "manifest": "Packages/Package.swift", "ok": true, "error": "" } ],
     "xcode": ["… re-link instructions …"],
